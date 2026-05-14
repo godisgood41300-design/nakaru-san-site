@@ -1,0 +1,27 @@
+IONOS SUPABASE CHAT SETUP
+
+Nakaru-san chat and direct messages now use Supabase directly.
+
+Before uploading to IONOS, open config.js and fill in:
+
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+
+Use the publishable/anon key, not the service_role secret key.
+
+Example shape:
+
+window.NAKARU_CONFIG = {
+  SUPABASE_URL: "https://your-project-ref.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY: "your-publishable-key-here"
+};
+
+Required Supabase tables:
+
+public_messages
+direct_messages
+
+If Supabase is not configured, visitors will only see:
+"Chat is temporarily unavailable. Please try again soon."
+
+They will not see technical server details or repeated error bubbles.

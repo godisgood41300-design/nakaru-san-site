@@ -1,0 +1,7 @@
+RewriteEngine On
+
+RewriteRule ^api/(.*)$ ionos-api/index.php?path=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^$ index.html [L]
