@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nakaru-san</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css?v=20260514-oauth-provider-fix" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Nakaru-san navigation">
+        <a class="brand" href="#" aria-label="Nakaru-san home">
+          <span class="brand-mark logo-mark" id="logoMount" aria-hidden="true">
+            <img src="/nakaru-san-logo.png" alt="" />
+          </span>
+          <span>
+            <strong>Nakaru-san</strong>
+            <small>Anime watch rooms</small>
+          </span>
+        </a>
+
+        <nav class="nav-list" aria-label="Primary">
+          <button class="nav-item active" type="button" data-section="home">
+            <span aria-hidden="true">H</span>
+            Home
+          </button>
+          <button class="nav-item" type="button" data-section="chat-room">
+            <span aria-hidden="true">CR</span>
+            Chat Room
+          </button>
+          <button class="nav-item" type="button" data-section="rooms">
+            <span aria-hidden="true">L</span>
+            Live Rooms
+          </button>
+          <button class="nav-item" type="button" data-section="friends">
+            <span aria-hidden="true">+</span>
+            Friends
+          </button>
+          <button class="nav-item" type="button" data-section="profilePage">
+            <span aria-hidden="true">P</span>
+            Profile
+          </button>
+          <button class="nav-item" type="button" data-section="directMessages">
+            <span aria-hidden="true">M</span>
+            Messages
+          </button>
+          <button class="nav-item" type="button" data-section="calls">
+            <span aria-hidden="true">C</span>
+            Calls
+          </button>
+          <button class="nav-item" type="button" data-section="safety">
+            <span aria-hidden="true">S</span>
+            Safety
+          </button>
+        </nav>
+
+        <div class="profile-mini">
+          <div class="avatar">YK</div>
+          <div>
+            <strong>YukiKaze</strong>
+            <small>Accepting friends</small>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <form class="search-wrap" id="searchForm">
+            <label class="sr-only" for="searchInput">Search anime, games, or rooms</label>
+            <input id="searchInput" type="search" placeholder="Search anime, games, or rooms" />
+          </form>
+          <div class="top-actions">
+            <button class="icon-button" id="notificationsButton" type="button" aria-label="Notifications">!</button>
+            <button class="ghost-action" id="accountButton" type="button">Sign In</button>
+            <button class="primary-action" id="startRoomButton" type="button">Chat Room</button>
+          </div>
+        </header>
+
+        <section class="hero-band" id="home" aria-labelledby="heroTitle">
+          <div class="hero-copy">
+            <img class="hero-logo" src="/nakaru-san-logo.png" alt="Nakaru-san logo" />
+            <p class="eyebrow">Live anime nights, gaming squads, fandom chat</p>
+            <h1 id="heroTitle">Nakaru-san</h1>
+            <p>
+              Watch anime together, join themed live rooms, find people who share your favorite series
+              and games, then move from public chat to trusted friendships.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-action large" id="exploreRoomsButton" type="button">Explore Live Rooms</button>
+              <button class="ghost-action large" id="viewRequestsButton" type="button">View Friend Requests</button>
+            </div>
+          </div>
+          <div class="stage" aria-label="Featured watch party preview">
+            <div class="stream-window">
+              <div class="stream-screen">
+                <div class="moon"></div>
+                <div class="mountain m1"></div>
+                <div class="mountain m2"></div>
+                <div class="play-chip" id="liveChip">LIVE | 12.8K</div>
+              </div>
+              <div class="stream-meta">
+                <strong id="featuredRoomTitle">Shonen Saturday Watch Party</strong>
+                <span id="featuredRoomMeta">Episode sync | public chat | spoiler shield</span>
+              </div>
+            </div>
+            <div class="chat-card">
+              <div class="chat-line"><b>Ami</b><span>That opening hit so hard.</span></div>
+              <div class="chat-line"><b>Ren</b><span>Queueing the boss raid after this.</span></div>
+              <div class="chat-line gold"><b>Mod</b><span>Spoilers hidden for new viewers.</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="chat-room-page" id="chat-room" hidden aria-labelledby="chatRoomTitle">
+          <div class="panel chat-room-hero">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Chat room</p>
+                <h2 id="chatRoomTitle">Watch, talk, and go live</h2>
+              </div>
+              <div class="chat-room-actions">
+                <button class="ghost-action" id="chatHomeButton" type="button">Home</button>
+                <button class="ghost-action" id="chatProfileButton" type="button">Profile</button>
+              </div>
+            </div>
+            <div class="chat-room-layout">
+              <div class="chat-live-card">
+                <div class="stream-screen chat-stream-screen">
+                  <video class="broadcast-video" id="broadcastVideo" autoplay muted playsinline hidden></video>
+                  <div class="live-placeholder" id="livePlaceholder">
+                    <strong>Live video rooms are being prepared.</strong>
+                    <span>Start Live opens your camera preview in this room. Supabase Realtime signaling can be added next for multi-viewer broadcasting.</span>
+                  </div>
+                  <div class="host-card" id="hostCard" hidden>
+                    <strong>You are live</strong>
+                    <span>Nakaru-san room broadcasting</span>
+                  </div>
+                  <div class="stream-controls" id="streamControls" hidden>
+                    <button class="danger-action" id="stopStreamButton" type="button">Stop Stream</button>
+                  </div>
+                </div>
+                <div class="chat-live-actions">
+                  <button class="primary-action icon-label" id="chatStartLiveButton" type="button">
+                    <span class="button-icon icon-video" aria-hidden="true"></span>
+                    Start Live
+                  </button>
+                </div>
+              </div>
+
+              <div class="panel live-panel compact-panel" id="rooms">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Happening now</p>
+                    <h2>Live Rooms</h2>
+                  </div>
+                  <span class="status-pill" id="sitePresence">Connecting</span>
+                </div>
+                <div class="room-list" id="roomList"></div>
+              </div>
+
+              <div class="panel chat-panel compact-panel" id="messages">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Public room</p>
+                    <h2 id="activeRoomTitle">Moonlit Lounge</h2>
+                  </div>
+                  <span class="status-pill" id="activeRoomStatus">1,284 online</span>
+                </div>
+                <div class="message-feed" id="messageFeed" aria-live="polite"></div>
+                <form class="message-form" id="messageForm">
+                  <label class="sr-only" for="messageInput">Send a public message</label>
+                  <input id="messageInput" type="text" placeholder="Send a public message" autocomplete="off" />
+                  <button type="submit">Send</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="content-grid" id="homeDashboard" aria-label="Nakaru-san dashboard">
+          <div class="panel feed-panel" id="homeFeed">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Home feed</p>
+                <h2>Community Posts</h2>
+              </div>
+              <span class="status-pill" id="feedStatus">Live</span>
+            </div>
+            <form class="post-composer" id="postForm">
+              <label class="sr-only" for="postInput">Write a community post</label>
+              <textarea id="postInput" placeholder="Share an anime thought, room update, or YouTube link" rows="3"></textarea>
+              <label class="post-image-picker upload-control compact">
+                <span class="button-icon icon-upload" aria-hidden="true"></span>
+                <span>Upload Image</span>
+                <input id="postImageInput" type="file" accept="image/*" />
+              </label>
+              <div class="composer-actions">
+                <span>Appropriate posts appear on the home feed.</span>
+                <button class="primary-action" type="submit">Post</button>
+              </div>
+            </form>
+            <div class="feed-list" id="feedList"></div>
+          </div>
+
+          <div class="panel profile-panel" id="profilePage">
+            <div class="profile-banner" id="profileBanner">
+              <div class="profile-photo" id="profilePhoto">YK</div>
+            </div>
+            <div class="profile-details">
+              <div>
+                <p class="eyebrow">Your profile</p>
+                <h2 id="profileName">YukiKaze</h2>
+                <p id="profileBio">Anime fan, watch-party host, and co-op teammate.</p>
+              </div>
+              <div class="profile-action-row">
+                <button class="ghost-action icon-label" id="editProfileButton" type="button">
+                  <span class="button-icon icon-edit" aria-hidden="true"></span>
+                  Edit Profile
+                </button>
+                <button class="primary-action icon-label" id="saveProfileButton" type="button" hidden>
+                  <span class="button-icon icon-save" aria-hidden="true"></span>
+                  Save Profile
+                </button>
+              </div>
+            </div>
+            <div class="profile-editor">
+              <label>
+                <span>Display name</span>
+                <input id="profileNameInput" type="text" placeholder="Display name" />
+              </label>
+              <label>
+                <span>Bio</span>
+                <textarea id="profileBioInput" rows="3" placeholder="Tell the community what you like"></textarea>
+              </label>
+              <label class="upload-control">
+                <span class="upload-copy">Profile picture</span>
+                <span class="upload-button">
+                  <span class="button-icon icon-camera" aria-hidden="true"></span>
+                  Change Photo
+                </span>
+                <input id="profilePhotoInput" type="file" accept="image/*" />
+              </label>
+              <label class="upload-control">
+                <span class="upload-copy">Banner image</span>
+                <span class="upload-button">
+                  <span class="button-icon icon-image" aria-hidden="true"></span>
+                  Change Banner
+                </span>
+                <input id="profileBannerInput" type="file" accept="image/*" />
+              </label>
+            </div>
+            <div class="result-group">
+              <h3>Your posts</h3>
+              <div class="feed-list" id="profilePosts"></div>
+            </div>
+          </div>
+
+          <div class="panel watch-panel" id="watchTogether">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Watch together</p>
+                <h2>Shared YouTube Player</h2>
+              </div>
+              <span class="status-pill purple" id="watchStatus">Paste a link</span>
+            </div>
+            <div class="video-embed" id="youtubeEmbed">
+              <span>Paste a YouTube link to share a video in this room.</span>
+            </div>
+            <form class="message-form" id="youtubeForm">
+              <label class="sr-only" for="youtubeInput">Paste a YouTube video link</label>
+              <input id="youtubeInput" type="url" placeholder="Paste YouTube URL" autocomplete="off" />
+              <button class="icon-label" type="submit">
+                <span class="button-icon icon-video" aria-hidden="true"></span>
+                Post Video
+              </button>
+            </form>
+          </div>
+
+          <div class="panel search-panel" id="searchResultsPanel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Search results</p>
+                <h2 id="searchResultsTitle">Discover</h2>
+              </div>
+              <span class="status-pill purple" id="searchResultsStatus">Ready</span>
+            </div>
+            <div class="search-results" id="searchResults">
+              <p class="empty-note">Search for an anime, character, game, or topic to find Nakaru-san posts and reference links.</p>
+            </div>
+          </div>
+
+          <div class="panel dm-panel" id="directMessages">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Private chat</p>
+                <h2>Direct Messages</h2>
+              </div>
+              <span class="status-pill purple" id="activeDmStatus">RaeArcade</span>
+            </div>
+            <div class="dm-layout">
+              <div class="thread-list" id="threadList" aria-label="Direct message threads"></div>
+              <div class="dm-chat">
+                <div class="message-feed compact" id="dmFeed" aria-live="polite"></div>
+                <form class="message-form" id="dmForm">
+                  <label class="sr-only" for="dmInput">Send a direct message</label>
+                  <input id="dmInput" type="text" placeholder="Send a direct message" autocomplete="off" />
+                  <button type="submit">Send</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel call-panel" id="calls">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Video and voice</p>
+                <h2>Calls</h2>
+              </div>
+              <span class="status-pill" id="callStatus">Ready</span>
+            </div>
+            <div class="call-stage" id="callStage">
+              <div class="video-tile large-tile" id="remoteTile">
+                <span id="callName">Choose a friend to call</span>
+              </div>
+              <video class="self-video" id="selfVideo" autoplay muted playsinline hidden></video>
+              <div class="video-tile self-tile" id="selfTile">You</div>
+            </div>
+            <div class="call-actions">
+              <button class="primary-action" id="videoCallButton" type="button">Video Call</button>
+              <button class="ghost-action" id="voiceCallButton" type="button">Voice Call</button>
+              <button class="danger-action" id="endCallButton" type="button" disabled>End</button>
+            </div>
+          </div>
+
+          <div class="panel people-panel" id="friends">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Friend requests</p>
+                <h2>Connect</h2>
+              </div>
+              <span class="status-pill purple">3 new</span>
+            </div>
+            <div class="request-list" id="requestList"></div>
+          </div>
+
+          <div class="panel safety-panel" id="safety">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Comfort controls</p>
+                <h2>Safety Settings</h2>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <strong>Friend request mode</strong>
+                <span>Decide who can send you requests.</span>
+              </div>
+              <select aria-label="Friend request mode">
+                <option>Everyone</option>
+                <option selected>Mutual rooms only</option>
+                <option>Friends of friends</option>
+                <option>Off</option>
+              </select>
+            </div>
+            <label class="toggle-row">
+              <span>
+                <strong>Auto-hide spoilers</strong>
+                <small>Blur episode details until you tap to reveal.</small>
+              </span>
+              <input type="checkbox" checked />
+            </label>
+            <label class="toggle-row">
+              <span>
+                <strong>Block unwanted requests</strong>
+                <small>Silence repeated requests from declined users.</small>
+              </span>
+              <input type="checkbox" checked />
+            </label>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="auth-modal" id="authModal">
+      <form class="auth-card" id="authForm" method="dialog">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Join Nakaru-san</p>
+            <h2 id="authTitle">Create account</h2>
+          </div>
+          <button class="icon-button" id="closeAuthButton" type="button" aria-label="Close">x</button>
+        </div>
+        <div class="auth-tabs">
+          <button class="thread-button active" id="signupTab" type="button">Sign Up</button>
+          <button class="thread-button" id="loginTab" type="button">Log In</button>
+        </div>
+        <label>
+          <span>Username</span>
+          <input id="authUsername" type="text" autocomplete="username" placeholder="YukiKaze" />
+        </label>
+        <label>
+          <span>Email</span>
+          <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters" required />
+        </label>
+        <button class="primary-action" id="authSubmitButton" type="submit">Create account</button>
+        <div class="oauth-grid">
+          <button type="button" data-provider="google">Continue with Google</button>
+          <button type="button" data-provider="facebook">Continue with Facebook</button>
+          <button type="button" data-provider="github">Continue with GitHub</button>
+          <button type="button" data-provider="twitter">Continue with X</button>
+        </div>
+        <p class="empty-note" id="authMessage">Social sign in opens through Supabase when those providers are enabled.</p>
+      </form>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/config.js?v=20260514-oauth-provider-fix"></script>
+    <script src="/app.js?v=20260514-oauth-provider-fix"></script>
+  </body>
+</html>
