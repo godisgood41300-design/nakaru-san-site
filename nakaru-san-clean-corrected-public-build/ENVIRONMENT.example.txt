@@ -1,0 +1,15 @@
+﻿APP_BASE_URL=https://nakarusan.nakarusan.com
+HOST=0.0.0.0
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_BUCKET=nakaru-uploads
+GOOGLE_API_KEY=your-google-api-key
+GOOGLE_CX=your-google-custom-search-engine-id
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+FACEBOOK_CLIENT_ID=your-facebook-client-id
+FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+X_CLIENT_ID=your-x-client-id
+X_CLIENT_SECRET=your-x-client-secret

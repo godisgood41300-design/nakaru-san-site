@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nakaru-live
+    runtime: node
+    # Use starter or higher for the public site so Render does not sleep and show a wake/loading screen.
+    # For free testing only, change this back to: free
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
