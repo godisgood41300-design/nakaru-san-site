@@ -14,6 +14,54 @@ create table if not exists sessions (
   created_at timestamptz default now()
 );
 
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text unique,
+  display_name text,
+  bio text,
+  avatar_url text,
+  banner_url text,
+  photo text,
+  banner text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table profiles add column if not exists username text;
+alter table profiles add column if not exists display_name text;
+alter table profiles add column if not exists bio text;
+alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists banner_url text;
+alter table profiles add column if not exists photo text;
+alter table profiles add column if not exists banner text;
+alter table profiles add column if not exists created_at timestamptz default now();
+alter table profiles add column if not exists updated_at timestamptz default now();
+
+create unique index if not exists profiles_username_unique_idx
+on profiles(username)
+where username is not null;
+
+create table if not exists posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  content text,
+  post_type text default 'text',
+  media_url text,
+  youtube_url text,
+  youtube_embed_url text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table posts add column if not exists user_id uuid references auth.users(id) on delete cascade;
+alter table posts add column if not exists content text;
+alter table posts add column if not exists post_type text default 'text';
+alter table posts add column if not exists media_url text;
+alter table posts add column if not exists youtube_url text;
+alter table posts add column if not exists youtube_embed_url text;
+alter table posts add column if not exists created_at timestamptz default now();
+alter table posts add column if not exists updated_at timestamptz default now();
+
 create table if not exists feed_posts (
   id text primary key,
   "from" text not null,
@@ -24,6 +72,11 @@ create table if not exists feed_posts (
   at bigint not null,
   appropriate boolean default true
 );
+
+alter table feed_posts add column if not exists youtube_url text;
+alter table feed_posts add column if not exists "youtubeUrl" text;
+alter table feed_posts add column if not exists image text;
+alter table feed_posts add column if not exists appropriate boolean default true;
 
 create table if not exists public_messages (
   id text primary key,
@@ -42,13 +95,17 @@ create table if not exists direct_messages (
 );
 
 create index if not exists feed_posts_at_idx on feed_posts(at desc);
+create index if not exists posts_created_at_idx on posts(created_at desc);
+create index if not exists posts_user_created_at_idx on posts(user_id, created_at desc);
 create index if not exists public_messages_room_at_idx on public_messages(room, at);
 create index if not exists direct_messages_thread_at_idx on direct_messages(thread, at);
+create index if not exists profiles_username_idx on profiles(username);
 
 insert into storage.buckets (id, name, public)
 values ('nakaru-uploads', 'nakaru-uploads', true)
 on conflict (id) do update set public = true;
 
-create policy if not exists "Public uploads are readable"
+drop policy if exists "Public uploads are readable" on storage.objects;
+create policy "Public uploads are readable"
 on storage.objects for select
 using (bucket_id = 'nakaru-uploads');
