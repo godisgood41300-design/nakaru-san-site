@@ -94,9 +94,22 @@ function StatPill({ label, value }) {
 
 function AuthCard({ onAuthComplete }) {
   const [mode, setMode] = useState("signin");
-  const [form, setForm] = useState({ email: "", password: "", username: "" });
+  const [form, setForm] = useState(() => ({
+    email: readLocal("nakaru-remember-email", ""),
+    password: "",
+    username: ""
+  }));
+  const [rememberAccount, setRememberAccount] = useState(() => Boolean(readLocal("nakaru-remember-email", "")));
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+
+  function rememberEmailChoice() {
+    if (rememberAccount) {
+      writeLocal("nakaru-remember-email", form.email.trim());
+    } else {
+      localStorage.removeItem("nakaru-remember-email");
+    }
+  }
 
   async function submitAuth(event) {
     event.preventDefault();
@@ -110,6 +123,7 @@ function AuthCard({ onAuthComplete }) {
           username: form.username || form.email.split("@")[0] || "nakaru_member"
         };
         writeLocal("nakaru-session", localUser);
+        rememberEmailChoice();
         onAuthComplete(localUser);
         setStatus("Demo account ready.");
         return;
@@ -123,9 +137,11 @@ function AuthCard({ onAuthComplete }) {
         });
         if (error) throw error;
         if (!data.session) {
+          rememberEmailChoice();
           setStatus("Check your email to confirm your account before logging in.");
           return;
         }
+        rememberEmailChoice();
         onAuthComplete(data.user);
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -133,6 +149,7 @@ function AuthCard({ onAuthComplete }) {
           password: form.password
         });
         if (error) throw error;
+        rememberEmailChoice();
         onAuthComplete(data.user);
       }
       setStatus("Signed in successfully.");
@@ -183,17 +200,22 @@ function AuthCard({ onAuthComplete }) {
         {mode === "signup" ? (
           <label>
             Username
-            <input value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="nakaru_fan" />
+            <input autoComplete="username" name="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="nakaru_fan" />
           </label>
         ) : null}
         <label>
           Email
-          <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="you@example.com" required />
+          <input autoComplete="email" name="email" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="you@example.com" required />
         </label>
         <label>
           Password
-          <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="8+ characters" required minLength={8} />
+          <input autoComplete={mode === "signup" ? "new-password" : "current-password"} name="password" type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="8+ characters" required minLength={8} />
         </label>
+        <label className="remember-row">
+          <input checked={rememberAccount} onChange={(event) => setRememberAccount(event.target.checked)} type="checkbox" />
+          Remember this email on this device
+        </label>
+        <small className="auth-hint">Nakaru-San keeps your sign-in session and remembered email. Your browser can save the password securely.</small>
         <button className="primary-action" disabled={busy} type="submit">
           {busy ? "Working..." : mode === "signup" ? "Create account" : "Sign in"}
         </button>
@@ -249,9 +271,13 @@ function ProfileCard({ profile, owner, editing, dirty, saving, status, onEdit, o
             <input type="file" accept="image/*" onChange={(event) => onBanner(event.target.files?.[0])} />
           </label>
           <div className="profile-save-row wide">
-            <button className="primary-action" disabled={!dirty || saving} onClick={onSave} type="button">
-              <Save size={17} /> {saving ? "Saving..." : dirty ? "Save Profile" : "Saved"}
-            </button>
+            {dirty || saving ? (
+              <button className="primary-action" disabled={saving} onClick={onSave} type="button">
+                <Save size={17} /> {saving ? "Saving..." : "Save Profile"}
+              </button>
+            ) : (
+              <span className="muted">Make a change to enable saving.</span>
+            )}
             <button className="ghost-action" onClick={onCancel} type="button">
               Cancel
             </button>
@@ -311,6 +337,7 @@ function App() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [youtubeStatus, setYoutubeStatus] = useState("");
   const [videoPosting, setVideoPosting] = useState(false);
+  const [videoComposerOpen, setVideoComposerOpen] = useState(true);
   const [stream, setStream] = useState(null);
   const videoRef = useRef(null);
 
@@ -418,6 +445,13 @@ function App() {
     setProfileStatus("");
   }
 
+  function openVideoComposer() {
+    setVideoComposerOpen(true);
+    setYoutubeStatus("");
+    setYoutubeUrl("");
+    setPage("video");
+  }
+
   async function uploadMedia(file, folder) {
     if (!file) return "";
     if (!hasSupabaseConfig || !sessionUser) return fileToDataUrl(file);
@@ -510,7 +544,7 @@ function App() {
       }
       setYoutubeUrl("");
       setYoutubeStatus("Video posted to the live feed.");
-      setPage("feed");
+      setVideoComposerOpen(false);
     } catch (error) {
       console.error("Video post failed", error);
       setYoutubeStatus("Video could not be posted. Please try again soon.");
@@ -656,7 +690,7 @@ function App() {
               <span className="eyebrow">Public live feed</span>
               <h2>Anime and gaming posts</h2>
             </div>
-            <button className="primary-action" onClick={() => setPage("video")} type="button"><Plus size={17} /> Post Video</button>
+            <button className="primary-action" onClick={openVideoComposer} type="button"><Plus size={17} /> Post Video</button>
           </div>
           <form className="composer" onSubmit={createTextPost}>
             <Avatar profile={profile} />
@@ -749,14 +783,26 @@ function App() {
     video: (
       <main className="page-grid">
         <section className="panel video-post-panel">
-          <div className="panel-title"><span className="eyebrow">Video post/upload</span><h2>Post a YouTube link</h2></div>
-          <form className="form-grid" onSubmit={addYouTubePost}>
-            <label>
-              YouTube URL
-              <input value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
-            </label>
-            <button className="primary-action" disabled={videoPosting} type="submit"><MonitorPlay size={17} /> {videoPosting ? "Posting..." : "Post Video Link"}</button>
-          </form>
+          <div className="panel-title"><span className="eyebrow">Video link post</span><h2>Post a YouTube link</h2></div>
+          {videoComposerOpen ? (
+            <form className="form-grid" onSubmit={addYouTubePost}>
+              <label>
+                YouTube URL
+                <input value={youtubeUrl} onChange={(event) => setYoutubeUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+              </label>
+              <button className="primary-action" disabled={videoPosting} type="submit"><MonitorPlay size={17} /> {videoPosting ? "Posting..." : "Post Video Link"}</button>
+            </form>
+          ) : (
+            <div className="post-complete">
+              <MonitorPlay size={34} />
+              <h3>Video posted.</h3>
+              <p>Your YouTube link is now saved as a feed post and connected to your account profile.</p>
+              <div className="hero-actions">
+                <button className="primary-action" onClick={() => setPage("feed")} type="button">View Live Feed</button>
+                <button className="ghost-action" onClick={openVideoComposer} type="button">Post Another Video Link</button>
+              </div>
+            </div>
+          )}
           {youtubeStatus ? <p className="status-text">{youtubeStatus}</p> : null}
         </section>
       </main>
@@ -819,7 +865,7 @@ function App() {
         </button>
         <nav>
           {navItems.map(([id, label, Icon]) => (
-            <button key={id} className={page === id ? "active" : ""} onClick={() => { if (id === "edit-profile" && signedIn) setProfileEditing(true); setPage(id); }} type="button">
+            <button key={id} className={page === id ? "active" : ""} onClick={() => { if (id === "edit-profile" && signedIn) setProfileEditing(true); if (id === "video") setVideoComposerOpen(true); setPage(id); }} type="button">
               <Icon size={16} /> {label}
             </button>
           ))}

@@ -765,6 +765,49 @@ label {
   padding: 0 1.15rem 1.15rem;
 }
 
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.remember-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+
+.auth-hint {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.post-complete {
+  display: grid;
+  place-items: center;
+  gap: 0.7rem;
+  min-height: 280px;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.post-complete svg {
+  color: var(--gold);
+}
+
+.post-complete h3,
+.post-complete p {
+  margin: 0;
+}
+
+.post-complete p {
+  max-width: 520px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
 @media (max-width: 1040px) {
   .topbar {
     grid-template-columns: 1fr auto;
