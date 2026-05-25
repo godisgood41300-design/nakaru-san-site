@@ -99,3 +99,10 @@
 - Updated the static server to use Render's `PORT` environment variable.
 - Made `/config.js` generate from live Render environment variables at runtime for Web Service deployments.
 - Updated `render.yaml` and README for Web Service deployment on `nakaru-san.nakaru-san.com`.
+
+## 2026-05-25 - Hoodie image banner and stronger kanji
+
+- Added the supplied hoodie mockup as `public/nakaru-hoodies-banner.png`.
+- Updated the hoodie banner to show the real merch image cleanly without the fallback artwork.
+- Increased kanji size, glow, and opacity so the background effect is more noticeable.
+- Updated the build so every file in `public/` is copied into `dist/`.

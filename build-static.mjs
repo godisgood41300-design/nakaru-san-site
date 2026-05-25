@@ -9,13 +9,26 @@ async function copyFile(from, to) {
   await fs.copyFile(from, to);
 }
 
+async function copyDirectory(from, to) {
+  await fs.mkdir(to, { recursive: true });
+  for (const item of await fs.readdir(from, { withFileTypes: true })) {
+    const source = path.join(from, item.name);
+    const target = path.join(to, item.name);
+    if (item.isDirectory()) {
+      await copyDirectory(source, target);
+    } else if (item.isFile()) {
+      await copyFile(source, target);
+    }
+  }
+}
+
 await fs.rm(dist, { recursive: true, force: true });
 await fs.mkdir(dist, { recursive: true });
 
 await copyFile(path.join(root, "static", "index.html"), path.join(dist, "index.html"));
 await copyFile(path.join(root, "static", "app.js"), path.join(dist, "app.js"));
 await copyFile(path.join(root, "static", "styles.css"), path.join(dist, "styles.css"));
-await copyFile(path.join(root, "public", "nakaru-san-logo.png"), path.join(dist, "nakaru-san-logo.png"));
+await copyDirectory(path.join(root, "public"), dist);
 
 const config = {
   supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",

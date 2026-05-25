@@ -741,11 +741,11 @@ function renderMerchBanner() {
     <section class="merch-banner" aria-label="Nakaru-San hoodie banner">
       <div class="merch-copy">
         <span class="eyebrow">Nakaru-San gear</span>
-        <strong>Community hoodies are moving into the dojo.</strong>
-        <small>Glossy black, purple, and gold energy for the Nakaru-San circle.</small>
+        <strong>Anime x gaming x streetwear.</strong>
+        <small>Built for the code. Made for the real.</small>
       </div>
       <div class="merch-image">
-        <img src="./nakaru-hoodies-banner.png" alt="Nakaru-San hoodies" onerror="this.closest('.merch-image').classList.add('use-fallback'); this.remove();" />
+        <img src="./nakaru-hoodies-banner.png" alt="Nakaru-San hoodie and sweatsuit collection" onload="this.closest('.merch-banner').classList.add('has-merch-image');" onerror="this.closest('.merch-image').classList.add('use-fallback'); this.remove();" />
         <div class="hoodie-fallback" aria-hidden="true">
           <span class="hoodie-card hoodie-one"><b>中</b></span>
           <span class="hoodie-card hoodie-two"><b>N</b></span>
