@@ -43,3 +43,9 @@
 - Google, Apple, Facebook, and X now call Supabase OAuth with the public app redirect URL.
 - Instagram now supports a configured external OAuth URL and shows a clean setup message if it is not configured.
 - Added `VITE_APP_URL` and `VITE_INSTAGRAM_AUTH_URL` to generated frontend config.
+
+## 2026-05-25 - Safer Render package
+
+- Added root-level static files in addition to `dist/` so the package can work if a host serves the upload root.
+- Added `VITE_APP_URL` and `VITE_INSTAGRAM_AUTH_URL` to `render.yaml` env var declarations.
+- Normalized Render static publish path to `dist`.

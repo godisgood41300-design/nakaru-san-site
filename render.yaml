@@ -3,11 +3,15 @@ services:
     name: nakaru-san
     runtime: static
     buildCommand: npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_APP_URL
+        sync: false
+      - key: VITE_INSTAGRAM_AUTH_URL
         sync: false
     routes:
       - type: rewrite
