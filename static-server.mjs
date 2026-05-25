@@ -1,31 +1,46 @@
-# Changelog
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 
-## 2026-05-23 - Production rebuild
+const folder = process.argv[2] || "dist";
+const port = Number(process.argv[3] || 4173);
+const root = path.resolve(process.cwd(), folder);
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml"
+};
 
-- Rebuilt Nakaru-San as a clean Vite + React app.
-- Added a polished anime/gaming social platform layout.
-- Added profile owner/edit behavior so Save Profile only appears while editing.
-- Added profile photo and banner upload controls.
-- Added YouTube link posting with embed conversion and feed rendering.
-- Added public chatroom pages and room-specific messages.
-- Added private room, inbox, DM conversation, GoLive, video preview, and call preview screens.
-- Added Supabase Auth, database, storage, and realtime-ready wiring.
-- Added `supabase/schema.sql` with RLS policies.
-- Added Render, Vercel, and local deployment instructions.
-- Removed dependency on old backend paths and stale root/public static files by isolating the new production app in this folder.
-
-## 2026-05-25 - Profile and video posting controls
-
-- Updated YouTube link posting so the form disappears after a successful post.
-- Added a clean post-success panel with View Live Feed and Post Another Video Link actions.
-- Updated profile editing so Save Profile appears only after the owner makes a change.
-- Kept Edit Profile available after saving so the owner can reopen editing later.
-- Added remembered email support and browser password-manager friendly auth fields.
-
-## 2026-05-25 - Deployment failure fix
-
-- Added a dependency-free static production app under `static/`.
-- Replaced the Vite build command with `node build-static.mjs`.
-- Generated deploy output in `dist/` without requiring React, Vite, lucide, or downloaded npm packages.
-- Updated Render config to publish `./dist`.
-- Kept optional Supabase support through generated `dist/config.js`.
+http.createServer((request, response) => {
+  const url = new URL(request.url || "/", "http://localhost");
+  let file = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+  if (!file) file = "index.html";
+  const target = path.resolve(root, path.normalize(file));
+  if (!target.startsWith(root)) {
+    response.writeHead(403);
+    response.end("Forbidden");
+    return;
+  }
+  fs.readFile(target, (error, data) => {
+    if (error) {
+      fs.readFile(path.join(root, "index.html"), (indexError, indexData) => {
+        if (indexError) {
+          response.writeHead(404);
+          response.end("Not found");
+          return;
+        }
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        response.end(indexData);
+      });
+      return;
+    }
+    response.writeHead(200, { "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream" });
+    response.end(data);
+  });
+}).listen(port, "0.0.0.0", () => {
+  console.log(`Nakaru-San preview: http://localhost:${port}/`);
+});
