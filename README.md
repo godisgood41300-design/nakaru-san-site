@@ -55,6 +55,32 @@ VITE_INSTAGRAM_AUTH_URL=
 
 Use the Supabase anon/publishable key only. Never put the service role secret key in frontend env variables.
 
+The build also accepts these alternate names if you already typed them in Render:
+
+```bash
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=your-public-anon-key
+SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
+APP_URL=https://your-domain.com
+INSTAGRAM_AUTH_URL=
+```
+
+If you deploy on Render as a Web Service, `/config.js` is generated from Render's live environment variables at runtime. After changing Render environment variables, restart or redeploy the Web Service, then open `/config.js` on your live site.
+
+Important: do not leave the example value `https://your-project-ref.supabase.co` in Render. Replace it with the real Supabase Project URL from Supabase Project Settings > API.
+
+The Supabase URL must look like this:
+
+```text
+https://your-project-ref.supabase.co
+```
+
+Do not paste a dashboard page such as:
+
+```text
+https://supabase.com/dashboard/project/your-project-ref/settings/api-keys/legacy
+```
+
 ## Supabase setup
 
 1. Open Supabase.
@@ -95,20 +121,21 @@ npm run preview
 
 The production files are generated in `dist/`. This build does not require React, Vite, or any downloaded npm package.
 
-## Deploy on Render as a static site
+## Deploy on Render as a Web Service
 
-This is the best Render setup if you want to avoid server sleep/wake delays:
+Use this setup if your Render service type is Web Service:
 
-1. Create a new Render Static Site.
+1. Create a new Render Web Service.
 2. Connect the GitHub repo containing this folder.
 3. Set Root Directory to `nakaru-san-production-app`.
 4. Build Command: `npm run build`
-5. Publish Directory: `dist`
-6. Add the `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` environment variables.
-7. Deploy.
-8. Add your custom domain in Render and point DNS to Render's static-site target.
+5. Start Command: `npm start`
+6. Leave Publish Directory blank because Web Services do not use it.
+7. Add the `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` environment variables.
+8. Deploy.
+9. Add your custom domain in Render and point DNS to Render's Web Service target.
 
-If you deploy as a Render Web Service instead of Static Site, the free service can sleep. Static Site avoids that problem.
+For your domain, use `VITE_APP_URL=https://nakaru-san.nakaru-san.com`.
 
 ## Deploy on Vercel
 

@@ -18,10 +18,10 @@ await copyFile(path.join(root, "static", "styles.css"), path.join(dist, "styles.
 await copyFile(path.join(root, "public", "nakaru-san-logo.png"), path.join(dist, "nakaru-san-logo.png"));
 
 const config = {
-  supabaseUrl: process.env.VITE_SUPABASE_URL || "",
-  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || "",
-  appUrl: process.env.VITE_APP_URL || "",
-  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || ""
+  supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "",
+  appUrl: process.env.VITE_APP_URL || process.env.APP_URL || "",
+  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || ""
 };
 
 await fs.writeFile(
@@ -31,3 +31,6 @@ await fs.writeFile(
 );
 
 console.log("Nakaru-San static build created in dist/");
+console.log(`Supabase URL configured: ${config.supabaseUrl ? "yes" : "no"}`);
+console.log(`Supabase anon/publishable key configured: ${config.supabaseAnonKey ? "yes" : "no"}`);
+console.log(`App URL configured: ${config.appUrl || "no"}`);

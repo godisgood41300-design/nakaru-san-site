@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node build-static.mjs && node static-server.mjs dist 4173",
     "build": "node build-static.mjs",
-    "preview": "node static-server.mjs dist 4173"
+    "preview": "node static-server.mjs dist 4173",
+    "start": "node static-server.mjs dist"
   },
   "engines": {
     "node": ">=18"
