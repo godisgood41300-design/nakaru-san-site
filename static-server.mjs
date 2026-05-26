@@ -32,6 +32,22 @@ function publicConfig() {
   };
 }
 
+function sendFile(response, target) {
+  fs.readFile(target, (error, data) => {
+    if (error) {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Not found");
+      return;
+    }
+
+    response.writeHead(200, {
+      "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
+      "Cache-Control": path.basename(target) === "index.html" ? "no-cache" : "public, max-age=300"
+    });
+    response.end(data);
+  });
+}
+
 http.createServer((request, response) => {
   const url = new URL(request.url || "/", "http://localhost");
   let file = decodeURIComponent(url.pathname).replace(/^\/+/, "");
@@ -46,30 +62,49 @@ http.createServer((request, response) => {
     return;
   }
 
-  const target = path.resolve(root, path.normalize(file));
+  const normalizedFile = path.normalize(file);
+  const target = path.resolve(root, normalizedFile);
   if (!target.startsWith(root)) {
     response.writeHead(403);
     response.end("Forbidden");
     return;
   }
+
   fs.readFile(target, (error, data) => {
-    if (error) {
-      fs.readFile(path.join(root, "index.html"), (indexError, indexData) => {
-        if (indexError) {
-          response.writeHead(404);
-          response.end("Not found");
-          return;
-        }
-        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        response.end(indexData);
+    if (!error) {
+      response.writeHead(200, {
+        "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
+        "Cache-Control": path.basename(target) === "index.html" ? "no-cache" : "public, max-age=300"
       });
+      response.end(data);
       return;
     }
-    response.writeHead(200, {
-      "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": path.basename(target) === "index.html" ? "no-cache" : "public, max-age=300"
-    });
-    response.end(data);
+
+    const extension = path.extname(file).toLowerCase();
+    if (extension) {
+      const publicTarget = path.resolve(process.cwd(), "public", normalizedFile);
+      const rootTarget = path.resolve(process.cwd(), normalizedFile);
+      if (publicTarget.startsWith(path.resolve(process.cwd(), "public"))) {
+        fs.access(publicTarget, fs.constants.R_OK, (publicError) => {
+          if (!publicError) {
+            sendFile(response, publicTarget);
+            return;
+          }
+          if (rootTarget.startsWith(process.cwd())) {
+            sendFile(response, rootTarget);
+            return;
+          }
+          response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+          response.end("Not found");
+        });
+        return;
+      }
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("Not found");
+      return;
+    }
+
+    sendFile(response, path.join(root, "index.html"));
   });
 }).listen(port, "0.0.0.0", () => {
   console.log(`Nakaru-San web service running on port ${port}`);

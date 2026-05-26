@@ -113,3 +113,15 @@
 - Updated the Render Web Service server to use the same public fallback if environment variables are missing.
 - Build now syncs IONOS-compatible root files from `dist/`.
 - README now explains the IONOS DNS-to-Render setup and the IONOS Webspace fallback.
+
+## 2026-05-26 - Bundled Supabase browser library
+
+- Added `supabase.min.js` to the app so account services no longer depend on the external CDN loading in the visitor's browser.
+- Updated `index.html` to load the local Supabase library before `app.js`.
+- Build now syncs `supabase.min.js` to the root IONOS-compatible files.
+
+## 2026-05-26 - Account diagnostics hardening
+
+- Updated the Web Service server so missing `.js`, `.css`, image, and other asset files do not fall back to `index.html`.
+- Added fallback serving from `public/` and the project root for bundled assets such as `supabase.min.js`.
+- This prevents browsers from trying to run HTML as JavaScript when an asset path is wrong or a deploy is missing a static file.

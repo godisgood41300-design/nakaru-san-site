@@ -49,7 +49,7 @@ await fs.writeFile(
   "utf8"
 );
 
-for (const file of ["index.html", "app.js", "styles.css", "config.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png"]) {
+for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png"]) {
   try {
     await copyFile(path.join(dist, file), path.join(root, file));
   } catch (error) {
