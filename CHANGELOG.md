@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-05-26 - Auth logout and remembered account fix
+
+- Removed the old local-only fake signup/login fallback from the active app.
+- Email/password signup, login, and logout now rely on Supabase Auth only.
+- Logout now clears Supabase auth tokens, old local auth session data, and protected in-memory account state.
+- Protected account pages now send logged-out visitors back to the sign-in screen.
+- Social login buttons are hidden unless `VITE_SOCIAL_AUTH_PROVIDERS` is set and the provider is configured in Supabase Auth.
+- Fixed profile input typing so fields no longer re-render after each keypress.
+- Added confirm-password validation to signup.
+- Login/signup now creates a missing Supabase profile row for the authenticated user.
+- Background profile refreshes no longer overwrite an actively edited dirty profile form.
+
 ## 2026-05-23 - Production rebuild
 
 - Rebuilt Nakaru-San as a clean Vite + React app.

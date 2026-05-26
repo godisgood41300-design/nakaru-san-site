@@ -1,53 +1,27 @@
-﻿# Nakaru-San Static Site Package
+NAKARU-SAN STATIC SITE DEPLOYMENT
 
-This ZIP is rebuilt for a fresh repository and Render Static Site deployment.
+Use this package for a Render Static Site.
 
-## Render Static Site Settings
+Render settings:
+1. Service type: Static Site
+2. Root Directory: leave blank if package.json is at the top of your GitHub repo
+3. Build Command: npm run build
+4. Publish Directory: dist
+5. Start Command: leave blank
 
-Build Command:
+Environment variables:
+VITE_SUPABASE_URL=https://rawpuvxrexgfsrgjtcep.supabase.co
+VITE_SUPABASE_ANON_KEY=your Supabase publishable/anon key
+VITE_APP_URL=https://nakaru-san-official.onrender.com
+VITE_SOCIAL_AUTH_PROVIDERS=
 
-```text
-npm run build
-```
+If you connect the custom domain, change VITE_APP_URL to the public domain:
+VITE_APP_URL=https://nakaru-san.nakaru-san.com
 
-Publish Directory:
-
-```text
-dist
-```
-
-Start Command:
-
-```text
-leave blank
-```
-
-## Included Fixes
-
-- Nakaru-San social/community UI
-- Profile save/edit behavior
-- YouTube video posting
-- Hoodie merch banner
-- Purple animated kanji background
-- Bundled Supabase browser library (`supabase.min.js`)
-- Public Supabase config fallback
-- Cache-busted assets to prevent loading-screen stale files
-- IONOS root-file fallback
-
-## IONOS Direct Upload
-
-If uploading directly to IONOS Webspace, upload these root files:
-
-```text
-index.html
-app.js
-styles.css
-config.js
-supabase.min.js
-nakaru-san-logo.png
-nakaru-hoodies-banner.png
-```
-
-## Supabase
-
-The included config uses the public publishable key only. Do not put a service-role secret key in browser files.
+Important:
+- Upload the unzipped files to the root of the GitHub repository.
+- Do not upload the zip file itself as the only repository file.
+- In Render, use Manual Deploy -> Clear build cache & deploy after changing files.
+- The deployed /index.html should be about 260 KB. If it is about 898 bytes, Render is still serving the old build.
+- Email/password accounts require Supabase Auth. The app no longer creates fake local-only accounts.
+- Social login buttons are hidden unless VITE_SOCIAL_AUTH_PROVIDERS is set and the providers are enabled in Supabase Auth.

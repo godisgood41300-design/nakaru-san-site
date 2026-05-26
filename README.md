@@ -18,14 +18,14 @@ This is a clean static rebuild made to avoid old duplicate files, stale deployme
 - GoLive page with browser camera/microphone preview
 - Supabase Auth support
 - Supabase database/storage/realtime-ready schema
-- Demo mode with local browser storage when Supabase env variables are not set
+- Public demo browsing when Supabase env variables are not set. Real accounts require Supabase Auth.
 
 ## Features that are fully working in this build
 
 - Static app navigation between all requested sections
-- Email signup/sign-in through Supabase when env variables are configured
-- Google/GitHub/Facebook OAuth button wiring through Supabase Auth
-- Local demo fallback when Supabase is not configured
+- Email signup/sign-in/logout through Supabase Auth when env variables are configured
+- Social login buttons are hidden by default unless you explicitly enable configured providers
+- Public browsing fallback when Supabase is not configured
 - Profile editing and save state
 - Avatar/banner file selection
 - Text post composer
@@ -51,6 +51,7 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-public-anon-key
 VITE_APP_URL=https://your-domain.com
 VITE_INSTAGRAM_AUTH_URL=
+VITE_SOCIAL_AUTH_PROVIDERS=
 ```
 
 Use the Supabase anon/publishable key only. Never put the service role secret key in frontend env variables.
@@ -63,6 +64,7 @@ SUPABASE_ANON_KEY=your-public-anon-key
 SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
 APP_URL=https://your-domain.com
 INSTAGRAM_AUTH_URL=
+SOCIAL_AUTH_PROVIDERS=
 ```
 
 If you deploy on Render as a Web Service, `/config.js` is generated from Render's live environment variables at runtime. After changing Render environment variables, restart or redeploy the Web Service, then open `/config.js` on your live site.
@@ -91,17 +93,29 @@ https://supabase.com/dashboard/project/your-project-ref/settings/api-keys/legacy
 6. Add redirect URLs for your live domain, for example `https://nakaru-san.nakaru-san.com/*`.
 7. If you also use the apex domain, add it too, for example `https://nakaru-san.com/*`.
 8. Remove any old localhost-only URL if Supabase keeps sending confirmation links there.
-9. Enable any OAuth providers you want to use under Authentication > Providers.
+9. Email/password auth is the default account system. Enable social OAuth providers only if you have the matching app credentials and redirect URLs set up.
 
 The signup code now sends `emailRedirectTo: window.location.origin`, so new confirmation emails should return to the exact public site the user signed up from. If an old email still points to localhost, sign up again or resend confirmation after updating Supabase URL Configuration.
 
 For OAuth:
 
+- Social login buttons are hidden unless `VITE_SOCIAL_AUTH_PROVIDERS` is set.
+- Example: `VITE_SOCIAL_AUTH_PROVIDERS=google,facebook`
 - Google requires a Google OAuth client id/secret in Supabase.
 - Apple requires an Apple Services ID and secret in Supabase.
 - Facebook requires a Facebook app id/secret in Supabase.
 - X/Twitter requires an X OAuth client id/secret in Supabase.
 - Instagram is not a built-in Supabase OAuth provider. If you create a custom Instagram/Meta OAuth endpoint, put its public authorization URL in `VITE_INSTAGRAM_AUTH_URL`. Without that value, the Instagram button shows a setup message instead of failing with "Unknown OAuth provider."
+
+Do not add social providers to `VITE_SOCIAL_AUTH_PROVIDERS` until they are enabled in Supabase Auth. Broken or unconfigured providers should stay hidden.
+
+## Authentication behavior
+
+- Signup and login use Supabase Auth only.
+- Passwords are never stored by the frontend. Supabase securely handles account credentials.
+- The "Remember this email" checkbox stores only the email address on that device. It does not store passwords.
+- Logout calls Supabase sign-out, clears old local auth fallback data, clears Supabase auth tokens from browser storage, and returns the visitor to the homepage.
+- If Supabase email confirmation is enabled, new users will see a message telling them to confirm email before logging in.
 
 ## Run locally
 

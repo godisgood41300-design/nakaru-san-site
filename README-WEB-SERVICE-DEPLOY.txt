@@ -15,6 +15,7 @@ VITE_SUPABASE_URL=https://rawpuvxrexgfsrgjtcep.supabase.co
 VITE_SUPABASE_ANON_KEY=your Supabase publishable/anon key
 VITE_APP_URL=https://nakaru-san-site-1.onrender.com
 VITE_INSTAGRAM_AUTH_URL=
+VITE_SOCIAL_AUTH_PROVIDERS=
 
 Important:
 - Upload the unzipped files to the root of the GitHub repository.
@@ -27,6 +28,8 @@ Supabase:
 - Run supabase/schema.sql in the Supabase SQL Editor after deploying this package.
 - The live database already has profiles/posts/direct_messages, but it was missing room_messages and had older column names.
 - The updated SQL adds/fixes banner_url, post_type, room_messages, and direct message sender/recipient columns.
+- Email/password signup, login, and logout use Supabase Auth only. The frontend does not save passwords or create local-only fake accounts.
+- Social login buttons stay hidden unless VITE_SOCIAL_AUTH_PROVIDERS is set, for example google,facebook, and those providers are fully enabled in Supabase Auth.
 - For email verification and social login, add these Redirect URLs in Supabase Auth:
   https://nakaru-san-site-1.onrender.com/
   https://nakaru-san.nakaru-san.com/

@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: nakaru-san-site-1
-    env: node
+    name: nakaru-san
+    runtime: static
     buildCommand: npm run build
-    startCommand: npm start
+    staticPublishPath: dist
     envVars:
       - key: VITE_SUPABASE_URL
         sync: false
@@ -13,3 +13,7 @@ services:
         sync: false
       - key: VITE_INSTAGRAM_AUTH_URL
         sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

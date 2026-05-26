@@ -7,7 +7,8 @@ const fallbackConfig = {
   supabaseUrl: "https://rawpuvxrexgfsrgjtcep.supabase.co",
   supabaseAnonKey: "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
   appUrl: "https://nakaru-san.com",
-  instagramAuthUrl: ""
+  instagramAuthUrl: "",
+  enabledSocialProviders: ""
 };
 
 async function copyFile(from, to) {
@@ -44,7 +45,8 @@ const config = {
   supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || fallbackConfig.supabaseUrl,
   supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackConfig.supabaseAnonKey,
   appUrl: process.env.VITE_APP_URL || process.env.APP_URL || fallbackConfig.appUrl,
-  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || fallbackConfig.instagramAuthUrl
+  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || fallbackConfig.instagramAuthUrl,
+  enabledSocialProviders: process.env.VITE_SOCIAL_AUTH_PROVIDERS || process.env.SOCIAL_AUTH_PROVIDERS || fallbackConfig.enabledSocialProviders
 };
 
 await fs.writeFile(

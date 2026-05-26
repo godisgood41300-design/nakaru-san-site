@@ -1437,7 +1437,8 @@ label {
   "supabaseUrl": "https://rawpuvxrexgfsrgjtcep.supabase.co",
   "supabaseAnonKey": "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
   "appUrl": "https://nakaru-san-site-1.onrender.com",
-  "instagramAuthUrl": ""
+  "instagramAuthUrl": "",
+  "enabledSocialProviders": ""
 };</script>
     <script>/**
  * Minified by jsDelivr using Terser v5.39.0.
@@ -1470,7 +1471,7 @@ var supabase=function(e){function t(e,t){var r={};for(var s in e)Object.prototyp
         </section>
       </main>
     </div>
-    <script>﻿const version = "20260526-full-diagnostics-fix";
+    <script>﻿const version = "20260526-auth-input-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -1589,6 +1590,7 @@ const state = {
   authMode: "signin",
   authStatus: "",
   authLoading: false,
+  socialLoading: "",
   rememberedEmail: readLocal("nakaru-remember-email", ""),
   rememberEmail: Boolean(readLocal("nakaru-remember-email", "")),
   stream: null,
@@ -1611,6 +1613,7 @@ state.savedProfile = { ...state.profile };
 
 let supabaseClient = null;
 let supabaseRetryCount = 0;
+let authSubscription = null;
 
 function validHttpUrl(value) {
   try {
@@ -1679,6 +1682,56 @@ function ensureSupabaseClient() {
 function clearStoredSession() {
   state.user = null;
   localStorage.removeItem("nakaru-session");
+  localStorage.removeItem("nakaru-local-users");
+}
+
+function clearLegacyLocalAuth() {
+  localStorage.removeItem("nakaru-session");
+  localStorage.removeItem("nakaru-local-users");
+}
+
+function clearBrowserAuthStorage() {
+  clearLegacyLocalAuth();
+  for (const storage of [localStorage, sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index) || "";
+      const lower = key.toLowerCase();
+      if (key === "nakaru-remember-email") continue;
+      if (key === "nakaru-session" || key === "nakaru-local-users" || key.startsWith("sb-") || lower.includes("supabase.auth")) {
+        storage.removeItem(key);
+      }
+    }
+  }
+}
+
+function resetPrivateState() {
+  state.user = null;
+  state.profileEditing = false;
+  state.profileDirty = false;
+  state.profileSaving = false;
+  state.socialLoading = "";
+  state.searchResults = [];
+  state.incomingRequests = [];
+  state.outgoingRequests = [];
+  state.friendships = [];
+  state.friends = [];
+  state.dmMessages = [];
+  state.activeConversationId = "";
+  state.notifications = [];
+  state.calls = [];
+  state.activeCallId = "";
+  state.liveRooms = [];
+  state.activeLiveRoom = null;
+  state.liveRoomInvites = [];
+}
+
+function enabledSocialProviders() {
+  const raw = config.enabledSocialProviders || config.socialAuthProviders || "";
+  const enabled = Array.isArray(raw) ? raw : String(raw).split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
+  return socialProviders.filter((item) => {
+    if (item.externalUrlKey) return Boolean(config[item.externalUrlKey]);
+    return enabled.includes(item.provider);
+  });
 }
 
 function scheduleSupabaseRetry() {
@@ -1855,21 +1908,14 @@ function parseYouTubeUrl(value) {
   }
 }
 
-async function hashPassword(password) {
-  const encoded = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", encoded);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 async function init() {
-  state.user = readLocal("nakaru-session", null);
+  clearLegacyLocalAuth();
   render();
 
-  if (!supabaseClient) {
+  if (!ensureSupabaseClient()) {
     scheduleSupabaseRetry();
+    return;
   }
-
-  if (!supabaseClient) return;
 
   await initSupabaseSession();
 }
@@ -1878,11 +1924,14 @@ async function initSupabaseSession() {
   try {
     const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
-    state.user = data.session?.user || state.user;
-    supabaseClient.auth.onAuthStateChange((_event, session) => {
-      state.user = session?.user || readLocal("nakaru-session", null);
+    state.user = data.session?.user || null;
+    authSubscription?.unsubscribe?.();
+    const { data: subscriptionData } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      state.user = session?.user || null;
+      if (!state.user) resetPrivateState();
       afterAuthChange();
     });
+    authSubscription = subscriptionData?.subscription || null;
     await afterAuthChange();
   } catch (error) {
     console.error("Supabase session load failed", error);
@@ -1911,12 +1960,18 @@ async function afterAuthChange() {
     }
   } else {
     await unsubscribeSocialRealtime();
+    if (isProtectedPage(state.page)) {
+      state.page = "edit-profile";
+      state.authMode = "signin";
+      state.authStatus = "Please sign in to continue.";
+    }
   }
   render();
 }
 
 async function loadProfile() {
   if (!state.user) return;
+  if (state.profileEditing && state.profileDirty && !state.profileSaving) return;
   if (supabaseClient) {
     let { data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(true)).eq("id", state.user.id).maybeSingle();
     if (error && isMissingColumnError(error, "banner_url")) {
@@ -1929,6 +1984,46 @@ async function loadProfile() {
     state.profile = profiles[state.user.id] || { id: state.user.id, ...defaultProfileForUser(state.user) };
   }
   state.savedProfile = { ...state.profile };
+}
+
+async function ensureProfileRecord(usernameHint = "") {
+  if (!state.user || !supabaseClient) return;
+  const { data, error } = await supabaseClient.from("profiles").select("id").eq("id", state.user.id).maybeSingle();
+  if (error) {
+    console.error("Profile existence check failed", error);
+    return;
+  }
+  if (data?.id) return;
+
+  const defaults = defaultProfileForUser(state.user);
+  const suffix = String(state.user.id || crypto.randomUUID()).slice(0, 6);
+  const row = {
+    id: state.user.id,
+    username: cleanUsername(usernameHint || defaults.username, `nakaru_${suffix}`),
+    display_name: defaults.display_name || cleanUsername(usernameHint || state.user.email, `nakaru_${suffix}`),
+    bio: defaults.bio || "Anime and gaming fan building a new watch-party circle.",
+    avatar_url: defaults.avatar_url || "",
+    banner_url: defaults.banner_url || "",
+    updated_at: new Date().toISOString()
+  };
+  if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
+
+  let { error: upsertError } = await supabaseClient.from("profiles").upsert(row, { onConflict: "id" });
+  if (upsertError && isMissingColumnError(upsertError, "banner_url")) {
+    const { banner_url, ...rowWithoutBanner } = row;
+    ({ error: upsertError } = await supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }));
+  }
+  if (upsertError && String(upsertError.message || "").toLowerCase().includes("duplicate")) {
+    row.username = `${row.username}_${suffix}`.slice(0, 31);
+    const { banner_url, ...retryRow } = row;
+    ({ error: upsertError } = await supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }));
+  }
+  if (upsertError) {
+    console.error("Profile creation failed", upsertError);
+    return;
+  }
+  state.profile = row;
+  state.savedProfile = { ...row };
 }
 
 async function loadPublicProfiles() {
@@ -2185,8 +2280,20 @@ async function unsubscribeSocialRealtime() {
   state.socialChannel = null;
 }
 
+function isProtectedPage(page) {
+  return ["profile", "video", "private-rooms", "search", "friends", "friend-requests", "messages", "calls", "live", "inbox"].includes(page);
+}
+
 function setPage(page) {
   if (page === "golive") page = "live";
+  if (isProtectedPage(page) && !state.user) {
+    state.page = "edit-profile";
+    state.sidebarOpen = false;
+    state.authMode = "signin";
+    state.authStatus = "Please sign in to continue.";
+    render();
+    return;
+  }
   state.page = page;
   state.sidebarOpen = false;
   if (page === "edit-profile" && state.user) state.profileEditing = true;
@@ -2208,14 +2315,40 @@ function setPage(page) {
   render();
 }
 
+function friendlyAuthError(error, mode) {
+  const message = String(error?.message || "").toLowerCase();
+  if (message.includes("email not confirmed") || message.includes("not confirmed")) return "Please confirm your email before logging in.";
+  if (message.includes("invalid login") || message.includes("invalid credentials")) return "Wrong email or password. Please try again.";
+  if (message.includes("already registered") || message.includes("already exists")) return "An account with this email already exists. Try signing in instead.";
+  if (message.includes("password")) return mode === "signup" ? "Password must be at least 8 characters." : "Wrong email or password. Please try again.";
+  return mode === "signup" ? "Could not create the account. Please check your information and try again." : "Could not sign in. Check your information and try again.";
+}
+
 async function submitAuth(event) {
   event.preventDefault();
   if (state.authLoading) return;
   const form = new FormData(event.currentTarget);
   const email = String(form.get("email") || "").trim();
   const password = String(form.get("password") || "");
+  const confirmPassword = String(form.get("confirmPassword") || "");
   const username = cleanUsername(form.get("username") || email, `nakaru_${crypto.randomUUID().slice(0, 6)}`);
+  if (!email || !email.includes("@")) {
+    state.authStatus = "Enter a valid email address.";
+    render();
+    return;
+  }
+  if (password.length < 8) {
+    state.authStatus = "Password must be at least 8 characters.";
+    render();
+    return;
+  }
+  if (state.authMode === "signup" && password !== confirmPassword) {
+    state.authStatus = "Passwords do not match.";
+    render();
+    return;
+  }
   state.rememberEmail = form.get("rememberEmail") === "on";
+  state.rememberedEmail = state.rememberEmail ? email : "";
   if (state.rememberEmail) writeLocal("nakaru-remember-email", email);
   else localStorage.removeItem("nakaru-remember-email");
   state.authStatus = "";
@@ -2223,49 +2356,40 @@ async function submitAuth(event) {
   render();
 
   try {
-    if (ensureSupabaseClient()) {
-      if (state.authMode === "signup") {
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { username },
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        });
-        if (error) throw error;
-        if (!data.session) {
-          state.authStatus = "Check your email to confirm your account before logging in.";
-          render();
-          return;
-        }
-        state.user = data.user;
-      } else {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        state.user = data.user;
-      }
-    } else {
-      const users = readLocal("nakaru-local-users", {});
-      if (state.authMode === "signup") {
-        if (users[email]) throw new Error("Account already exists.");
-        const id = crypto.randomUUID();
-        users[email] = { id, email, username: username || email.split("@")[0], passwordHash: await hashPassword(password) };
-        writeLocal("nakaru-local-users", users);
-        state.user = { id, email, username: users[email].username };
-      } else {
-        const user = users[email];
-        if (!user || user.passwordHash !== await hashPassword(password)) throw new Error("Invalid login.");
-        state.user = { id: user.id, email, username: user.username };
-      }
-      writeLocal("nakaru-session", state.user);
+    if (!ensureSupabaseClient()) {
+      state.authStatus = accountServiceWarning;
+      return;
     }
-    state.authStatus = "Signed in successfully.";
+    if (state.authMode === "signup") {
+      const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username },
+          emailRedirectTo: redirectUrl()
+        }
+      });
+      if (error) throw error;
+      if (!data?.session) {
+        state.authMode = "signin";
+        state.authStatus = "Account created. Please check your email to confirm it, then sign in.";
+        return;
+      }
+      state.user = data.session.user || data.user;
+      await ensureProfileRecord(username);
+      state.authStatus = "Account created and signed in.";
+    } else {
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      state.user = data.session?.user || data.user;
+      await ensureProfileRecord();
+      state.authStatus = "Signed in successfully.";
+    }
     await afterAuthChange();
     setPage("profile");
   } catch (error) {
     console.error("Auth failed", error);
-    state.authStatus = error.message?.includes("Email not confirmed") ? "Please confirm your email before logging in." : "Could not sign in. Check your information and try again.";
+    state.authStatus = friendlyAuthError(error, state.authMode);
     render();
   } finally {
     state.authLoading = false;
@@ -2275,35 +2399,55 @@ async function submitAuth(event) {
 
 async function social(provider) {
   const option = socialProviders.find((item) => item.provider === provider);
+  const enabled = enabledSocialProviders().some((item) => item.provider === provider);
+  if (!enabled) {
+    state.authStatus = "Social login is not enabled yet.";
+    render();
+    return;
+  }
+  state.socialLoading = provider;
+  render();
   if (option?.externalUrlKey) {
     const externalUrl = config[option.externalUrlKey];
     if (externalUrl) {
       window.location.href = externalUrl;
       return;
     }
-    state.authStatus = "Instagram login needs a custom OAuth setup first.";
+    state.socialLoading = "";
+    state.authStatus = "Social login is not enabled yet.";
     render();
     return;
   }
 
   if (!ensureSupabaseClient()) {
-    state.authStatus = "Social login needs Supabase provider setup first.";
+    state.socialLoading = "";
+    state.authStatus = "Social login is not enabled yet.";
     render();
     return;
   }
-  const { error } = await supabaseClient.auth.signInWithOAuth({ provider, options: { redirectTo: redirectUrl() } });
-  if (error) {
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({ provider, options: { redirectTo: redirectUrl() } });
+    if (error) throw error;
+  } catch (error) {
     console.error("OAuth failed", error);
-    state.authStatus = `${option?.label || "Social login"} is not enabled yet.`;
+    state.socialLoading = "";
+    state.authStatus = "Social login is not enabled yet.";
     render();
   }
 }
 
-function updateProfile(field, value) {
+function updateProfile(field, value, options = {}) {
   state.profile = { ...state.profile, [field]: value };
   state.profileDirty = true;
   state.profileStatus = "";
-  render();
+  const saveButton = document.querySelector("[data-profile-save]");
+  if (saveButton) {
+    saveButton.disabled = state.profileSaving;
+    saveButton.textContent = state.profileSaving ? "Saving..." : "Save Profile";
+  }
+  const status = document.querySelector("[data-profile-status]");
+  if (status) status.textContent = "";
+  if (options.render) render();
 }
 
 function fileToDataUrl(file) {
@@ -2319,7 +2463,7 @@ async function setProfileImage(field, input) {
   const file = input.files?.[0];
   if (!file) return;
   const dataUrl = await fileToDataUrl(file);
-  updateProfile(field, dataUrl);
+  updateProfile(field, dataUrl, { render: true });
 }
 
 async function saveProfile() {
@@ -3035,12 +3179,28 @@ async function stopCamera(shouldRender = true) {
 }
 
 async function signOut() {
-  await stopCamera(false);
-  if (supabaseClient) await supabaseClient.auth.signOut();
-  localStorage.removeItem("nakaru-session");
-  state.user = null;
-  state.profileEditing = false;
-  setPage("home");
+  if (state.authLoading) return;
+  state.authLoading = true;
+  render();
+  try {
+    await stopCamera(false);
+    if (ensureSupabaseClient()) {
+      const { error } = await supabaseClient.auth.signOut({ scope: "global" });
+      if (error) {
+        console.error("Global sign out failed", error);
+        await supabaseClient.auth.signOut({ scope: "local" });
+      }
+    }
+  } catch (error) {
+    console.error("Sign out failed", error);
+  } finally {
+    clearBrowserAuthStorage();
+    resetPrivateState();
+    state.authLoading = false;
+    state.authStatus = "Signed out.";
+    state.page = "home";
+    render();
+  }
 }
 
 function renderPost(post) {
@@ -3067,22 +3227,24 @@ function renderVideoOnly(post) {
 }
 
 function authView() {
+  const enabledOauth = enabledSocialProviders();
   return `
     <section class="auth-card panel">
       <div class="panel-title"><span class="eyebrow">Account</span><h2>${state.authMode === "signup" ? "Create your Nakaru-San account" : "Welcome back"}</h2></div>
       <div class="segmented">
-        <button class="${state.authMode === "signin" ? "active" : ""}" onclick="state.authMode='signin'; render()" type="button">Sign in</button>
-        <button class="${state.authMode === "signup" ? "active" : ""}" onclick="state.authMode='signup'; render()" type="button">Sign up</button>
+        <button class="${state.authMode === "signin" ? "active" : ""}" onclick="state.authMode='signin'; state.authStatus=''; render()" type="button">Log In</button>
+        <button class="${state.authMode === "signup" ? "active" : ""}" onclick="state.authMode='signup'; state.authStatus=''; render()" type="button">Sign Up</button>
       </div>
       <form class="form-grid" onsubmit="submitAuth(event)">
         ${state.authMode === "signup" ? `<label>Username<input name="username" autocomplete="username" placeholder="nakaru_fan" /></label>` : ""}
         <label>Email<input name="email" autocomplete="email" type="email" value="${escapeHtml(state.rememberedEmail)}" placeholder="you@example.com" required /></label>
         <label>Password<input name="password" autocomplete="${state.authMode === "signup" ? "new-password" : "current-password"}" type="password" placeholder="8+ characters" required minlength="8" /></label>
+        ${state.authMode === "signup" ? `<label>Confirm password<input name="confirmPassword" autocomplete="new-password" type="password" placeholder="Type password again" required minlength="8" /></label>` : ""}
         <label class="remember-row"><input name="rememberEmail" type="checkbox" ${state.rememberEmail ? "checked" : ""} /> Remember this email on this device</label>
         <small class="auth-hint">Nakaru-San keeps your sign-in session and remembered email. Your browser can save the password securely.</small>
-        <button class="primary-action" ${state.authLoading ? "disabled" : ""} type="submit">${state.authLoading ? "Working..." : state.authMode === "signup" ? "Create account" : "Sign in"}</button>
+        <button class="primary-action" ${state.authLoading ? "disabled" : ""} type="submit">${state.authLoading ? "Working..." : state.authMode === "signup" ? "Create Account" : "Log In"}</button>
       </form>
-      <div class="oauth-row social-grid">${socialProviders.map((item) => `<button onclick="social('${item.provider}')" type="button">${escapeHtml(item.label)}</button>`).join("")}</div>
+      ${enabledOauth.length ? `<div class="oauth-row social-grid">${enabledOauth.map((item) => `<button onclick="social('${item.provider}')" ${state.socialLoading ? "disabled" : ""} type="button">${escapeHtml(state.socialLoading === item.provider ? "Connecting..." : item.label)}</button>`).join("")}</div>` : ""}
       ${state.authStatus ? `<p class="status-text">${escapeHtml(state.authStatus)}</p>` : ""}
     </section>
   `;
@@ -3104,7 +3266,8 @@ function profileCard(editing = false) {
           <label class="file-button">Change profile picture<input type="file" accept="image/*" onchange="setProfileImage('avatar_url', this)" /></label>
           <label class="file-button">Change banner<input type="file" accept="image/*" onchange="setProfileImage('banner_url', this)" /></label>
           <div class="profile-save-row wide">
-            ${state.profileDirty ? `<button class="primary-action" ${state.profileSaving ? "disabled" : ""} onclick="saveProfile()" type="button">${state.profileSaving ? "Saving..." : "Save Profile"}</button>` : `<span class="muted">Make a change to enable saving.</span>`}
+            <button class="primary-action" data-profile-save ${!state.profileDirty || state.profileSaving ? "disabled" : ""} onclick="saveProfile()" type="button">${state.profileSaving ? "Saving..." : "Save Profile"}</button>
+            <span class="muted" data-profile-status>${state.profileDirty ? "" : "Make a change to enable saving."}</span>
             <button class="ghost-action" onclick="cancelProfile()" type="button">Cancel</button>
           </div>
         </div>
@@ -3295,12 +3458,12 @@ function render() {
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" type="button">Sign out</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
       ${bootWarnings.length ? `<div class="demo-banner">${escapeHtml(bootWarnings[bootWarnings.length - 1])}</div>` : ""}
-      ${(!config.supabaseUrl || !config.supabaseAnonKey) && !bootWarnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Demo mode is active until Supabase config is added. The UI still works locally with saved browser data.</div>` : ""}
+      ${(!config.supabaseUrl || !config.supabaseAnonKey) && !bootWarnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Account sign-in needs Supabase config. Public pages are still available.</div>` : ""}
       ${renderPage()}
     </div>
   `;
