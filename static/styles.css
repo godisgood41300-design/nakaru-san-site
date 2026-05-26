@@ -125,6 +125,19 @@ label {
   animation-delay: var(--delay);
 }
 
+.kanji-rain span.gold {
+  color: rgba(250, 204, 21, 0.58);
+  text-shadow:
+    0 0 15px rgba(250, 204, 21, 0.72),
+    0 0 42px rgba(180, 83, 9, 0.42),
+    0 0 62px rgba(124, 60, 255, 0.2);
+  filter: drop-shadow(0 0 24px rgba(250, 204, 21, 0.46));
+}
+
+.kanji-rain span.purple {
+  color: rgba(196, 142, 255, 0.54);
+}
+
 @keyframes kanjiFall {
   0% {
     transform: translate3d(-12px, -18vh, 0) rotate(-10deg) scale(0.88);
@@ -174,7 +187,7 @@ label {
   display: flex;
   align-items: end;
   width: min(1180px, 100%);
-  min-height: clamp(360px, 62vw, 760px);
+  min-height: clamp(320px, 54vw, 660px);
   margin: 0 auto 1rem;
   padding: 1.2rem;
   overflow: hidden;
@@ -340,6 +353,117 @@ label {
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid rgba(250, 204, 21, 0.45);
+}
+
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0);
+  transition: background 180ms ease;
+}
+
+.sidebar-scrim.open {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.logo-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  width: min(390px, 88vw);
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(250, 204, 21, 0.16), transparent 32%),
+    radial-gradient(circle at 20% 38%, rgba(124, 60, 255, 0.22), transparent 34%),
+    rgba(8, 8, 15, 0.98);
+  border-right: 1px solid rgba(250, 204, 21, 0.28);
+  box-shadow: 28px 0 80px rgba(0, 0, 0, 0.48);
+  transform: translateX(-105%);
+  transition: transform 220ms ease;
+}
+
+.logo-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-head img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+}
+
+.sidebar-head strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.sidebar-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  font-size: 1.45rem;
+}
+
+.logo-sidebar p {
+  margin: 0;
+  color: #d6daea;
+  line-height: 1.65;
+}
+
+.sidebar-links {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  overflow: auto;
+}
+
+.sidebar-links button {
+  justify-content: flex-start;
+  min-height: 42px;
+  padding: 0.7rem 0.85rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.sidebar-links button.active,
+.sidebar-links button:hover {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: linear-gradient(135deg, rgba(124, 60, 255, 0.66), rgba(250, 204, 21, 0.12));
+}
+
+.sidebar-cta {
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.sidebar-cta .primary-action {
+  width: 100%;
 }
 
 .topbar nav {
@@ -529,6 +653,94 @@ label {
   font-size: 1.35rem;
 }
 
+.about-section {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 1rem;
+  overflow: hidden;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  background:
+    linear-gradient(135deg, rgba(13, 13, 24, 0.96), rgba(39, 20, 75, 0.78)),
+    radial-gradient(circle at 80% 20%, rgba(250, 204, 21, 0.16), transparent 34%);
+  border-color: rgba(250, 204, 21, 0.24);
+}
+
+.about-glow {
+  position: absolute;
+  inset: auto -12% -34% 40%;
+  height: 260px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(124, 60, 255, 0.34), transparent 66%);
+  filter: blur(6px);
+}
+
+.about-copy,
+.about-card-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.about-copy {
+  display: grid;
+  align-content: center;
+  gap: 0.85rem;
+}
+
+.about-copy h2 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.65rem);
+  line-height: 0.98;
+}
+
+.about-copy p {
+  margin: 0;
+  color: #d8dceb;
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.about-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.about-card {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 168px;
+  padding: 1rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(124, 60, 255, 0.12)),
+    rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.about-card span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--gold);
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  border-radius: 8px;
+}
+
+.about-card h3 {
+  margin: 0;
+}
+
+.about-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .eyebrow {
   color: var(--gold);
   font-size: 0.78rem;
@@ -676,6 +888,16 @@ label {
   width: 100%;
   height: 100%;
   border: 0;
+}
+
+.video-frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  background: #000;
 }
 
 .post-image {
@@ -875,6 +1097,16 @@ label {
 .video-post-panel,
 .auth-card {
   width: min(620px, 100%);
+  margin: 0 auto;
+}
+
+.video-post-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: min(1180px, 100%);
   margin: 0 auto;
 }
 
@@ -1081,6 +1313,8 @@ label {
   .content-layout,
   .inbox-layout,
   .live-grid,
+  .video-post-layout,
+  .about-section,
   .hero {
     grid-template-columns: 1fr;
   }
@@ -1090,7 +1324,7 @@ label {
   }
 
   .merch-banner {
-    min-height: clamp(340px, 72vw, 680px);
+    min-height: clamp(300px, 62vw, 560px);
   }
 }
 
@@ -1130,7 +1364,7 @@ label {
   }
 
   .merch-banner {
-    min-height: clamp(300px, 90vw, 520px);
+    min-height: clamp(250px, 76vw, 440px);
     padding: 0.85rem;
   }
 
@@ -1166,6 +1400,7 @@ label {
   .stats-row,
   .edit-profile-grid,
   .card-grid,
+  .about-card-grid,
   .oauth-row {
     grid-template-columns: 1fr;
   }

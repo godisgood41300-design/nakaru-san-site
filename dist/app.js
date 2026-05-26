@@ -19,10 +19,10 @@ const rooms = [
 ];
 
 const kanjiRainItems = [
-  ["絆", 4, 18, 0], ["夢", 12, 23, 6], ["光", 20, 17, 12], ["心", 28, 28, 3],
-  ["武", 36, 19, 9], ["影", 44, 25, 15], ["魂", 52, 18, 5], ["月", 60, 24, 11],
-  ["火", 68, 16, 2], ["空", 76, 27, 8], ["道", 84, 20, 14], ["和", 92, 26, 4],
-  ["絆", 8, 31, 17], ["夢", 32, 22, 20], ["光", 57, 29, 22], ["心", 88, 18, 19]
+  ["絆", 4, 18, 0, "purple"], ["夢", 12, 23, 6, "gold"], ["光", 20, 17, 12, "purple"], ["心", 28, 28, 3, "gold"],
+  ["武", 36, 19, 9, "purple"], ["影", 44, 25, 15, "purple"], ["魂", 52, 18, 5, "gold"], ["月", 60, 24, 11, "purple"],
+  ["火", 68, 16, 2, "gold"], ["空", 76, 27, 8, "purple"], ["道", 84, 20, 14, "gold"], ["和", 92, 26, 4, "purple"],
+  ["絆", 8, 31, 17, "gold"], ["夢", 32, 22, 20, "purple"], ["光", 57, 29, 22, "gold"], ["心", 88, 18, 19, "purple"]
 ];
 
 const demoPosts = [
@@ -52,6 +52,7 @@ const demoPosts = [
 
 const state = {
   page: "home",
+  sidebarOpen: false,
   user: null,
   profile: readLocal("nakaru-profile", {
     username: "nakaru_member",
@@ -71,6 +72,10 @@ const state = {
   videoPosting: false,
   videoComposerOpen: true,
   lastVideoPost: null,
+  deviceVideoStatus: "",
+  deviceVideoPosting: false,
+  deviceVideoComposerOpen: true,
+  lastDeviceVideoPost: null,
   activeRoom: "anime",
   roomText: "",
   roomStatus: "",
@@ -95,9 +100,20 @@ const state = {
   ]),
   activeThread: "dm-rae",
   activeDmRecipient: "",
+  activeConversationId: "",
   dmMessages: readLocal("nakaru-direct-messages", []),
   dmStatus: "",
   publicProfiles: [],
+  socialSearch: "",
+  searchResults: [],
+  searchStatus: "",
+  incomingRequests: [],
+  outgoingRequests: [],
+  friendships: [],
+  friends: [],
+  socialStatus: "",
+  socialChannel: null,
+  notifications: [],
   authMode: "signin",
   authStatus: "",
   authLoading: false,
@@ -109,9 +125,15 @@ const state = {
   callChannel: null,
   callRoom: "nakaru-lounge",
   callMode: "video",
+  activeCallId: "",
+  calls: [],
   callStatus: "",
   callStarting: false,
-  inCall: false
+  inCall: false,
+  liveRooms: [],
+  activeLiveRoom: null,
+  liveRoomInvites: [],
+  liveRoomStatus: ""
 };
 state.savedProfile = { ...state.profile };
 
@@ -226,6 +248,11 @@ function writeLocal(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function toggleSidebar(force) {
+  state.sidebarOpen = typeof force === "boolean" ? force : !state.sidebarOpen;
+  render();
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
 }
@@ -289,6 +316,47 @@ function normalizePost(post = {}) {
     likes: post.likes || 0,
     comments_count: post.comments_count || 0
   };
+}
+
+function profileName(profile = {}) {
+  return profile.display_name || profile.username || "Nakaru Member";
+}
+
+function profileById(id) {
+  if (id === state.user?.id) return state.profile;
+  return state.publicProfiles.find((profile) => profile.id === id) || {};
+}
+
+function isFriend(userId) {
+  return state.friends.some((friend) => friend.id === userId) || state.friendships.some((row) => row.user_id === state.user?.id && row.friend_id === userId);
+}
+
+function relationTo(userId) {
+  if (!state.user) return "signed-out";
+  if (userId === state.user.id) return "self";
+  if (isFriend(userId)) return "friend";
+  if (state.outgoingRequests.some((request) => request.receiver_id === userId && request.status === "pending")) return "pending-out";
+  if (state.incomingRequests.some((request) => request.sender_id === userId && request.status === "pending")) return "pending-in";
+  if ([...state.incomingRequests, ...state.outgoingRequests].some((request) => [request.sender_id, request.receiver_id].includes(userId) && request.status === "blocked")) return "blocked";
+  return "none";
+}
+
+function notificationText(type, fallback) {
+  const map = {
+    request: "New friend request",
+    accepted: "Friend request accepted",
+    message: "New message",
+    call: "Incoming call",
+    live: "Live room invite"
+  };
+  return map[type] || fallback || "Notification";
+}
+
+function addNotification(type, text, refId = "") {
+  state.notifications = [
+    { id: crypto.randomUUID(), type, text: text || notificationText(type), refId, created_at: new Date().toISOString(), read: false },
+    ...state.notifications
+  ].slice(0, 20);
 }
 
 function profileSelectColumns(includeBanner = true) {
@@ -363,11 +431,14 @@ async function afterAuthChange() {
   if (state.user) {
     try {
       await loadProfile();
-      await loadDirectMessages();
+      await loadSocialData();
+      subscribeSocialRealtime();
     } catch (error) {
       console.error("Data load failed", error);
       bootWarnings.push("Some account data could not load. The public app is still available.");
     }
+  } else {
+    await unsubscribeSocialRealtime();
   }
   render();
 }
@@ -437,6 +508,30 @@ async function loadRoomMessages(roomId = state.activeRoom) {
 
 async function loadDirectMessages() {
   if (!supabaseClient || !state.user || !state.activeDmRecipient) return;
+  if (!isFriend(state.activeDmRecipient)) {
+    state.dmMessages = [];
+    state.dmStatus = "You can message this user after you become friends.";
+    return;
+  }
+  try {
+    const conversationId = await ensureConversation(state.activeDmRecipient);
+    if (!conversationId) return;
+    const { data, error } = await supabaseClient
+      .from("messages")
+      .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .limit(150);
+    if (error) throw error;
+    state.dmMessages = (data || []).map((message) => ({ ...message, text: message.body }));
+    state.dmStatus = "";
+  } catch (error) {
+    console.error("Message history load failed", error);
+    await loadDirectMessagesFallback();
+  }
+}
+
+async function loadDirectMessagesFallback() {
   const query = `and(sender_id.eq.${state.user.id},recipient_id.eq.${state.activeDmRecipient}),and(sender_id.eq.${state.activeDmRecipient},recipient_id.eq.${state.user.id})`;
   const { data, error } = await supabaseClient
     .from("direct_messages")
@@ -445,7 +540,7 @@ async function loadDirectMessages() {
     .order("created_at", { ascending: true })
     .limit(100);
   if (error) {
-    console.error("Direct message load failed", error);
+    console.error("Direct message fallback failed", error);
     state.dmStatus = "Messaging is temporarily unavailable. Please try again soon.";
     return;
   }
@@ -453,18 +548,190 @@ async function loadDirectMessages() {
   state.dmStatus = "";
 }
 
+async function loadSocialData() {
+  if (!supabaseClient || !state.user) return;
+  await Promise.allSettled([
+    loadFriendRequests(),
+    loadFriendships(),
+    loadCalls(),
+    loadLiveRooms(),
+    loadLiveRoomInvites()
+  ]);
+  if (state.activeDmRecipient) await loadDirectMessages();
+}
+
+async function loadFriendRequests() {
+  if (!supabaseClient || !state.user) return;
+  const { data, error } = await supabaseClient
+    .from("friend_requests")
+    .select("id,sender_id,receiver_id,status,created_at,updated_at")
+    .or(`sender_id.eq.${state.user.id},receiver_id.eq.${state.user.id}`)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Friend request load failed", error);
+    state.socialStatus = "Friend requests are temporarily unavailable.";
+    return;
+  }
+  const requests = data || [];
+  state.incomingRequests = requests.filter((request) => request.receiver_id === state.user.id);
+  state.outgoingRequests = requests.filter((request) => request.sender_id === state.user.id);
+}
+
+async function loadFriendships() {
+  if (!supabaseClient || !state.user) return;
+  const { data, error } = await supabaseClient
+    .from("friendships")
+    .select("id,user_id,friend_id,created_at")
+    .or(`user_id.eq.${state.user.id},friend_id.eq.${state.user.id}`)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Friends load failed", error);
+    state.socialStatus = "Friends list is temporarily unavailable.";
+    return;
+  }
+  state.friendships = data || [];
+  const friendIds = [...new Set(state.friendships.map((row) => row.user_id === state.user.id ? row.friend_id : row.user_id))];
+  state.friends = friendIds.map(profileById).filter((profile) => profile.id);
+  if (!state.activeDmRecipient && state.friends[0]) state.activeDmRecipient = state.friends[0].id;
+}
+
+async function loadCalls() {
+  if (!supabaseClient || !state.user) return;
+  const { data, error } = await supabaseClient
+    .from("calls")
+    .select("id,caller_id,receiver_id,call_type,status,room_id,created_at,ended_at")
+    .or(`caller_id.eq.${state.user.id},receiver_id.eq.${state.user.id}`)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) {
+    console.error("Calls load failed", error);
+    return;
+  }
+  state.calls = data || [];
+}
+
+async function loadLiveRooms() {
+  if (!supabaseClient || !state.user) return;
+  const { data, error } = await supabaseClient
+    .from("live_rooms")
+    .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
+    .eq("host_id", state.user.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) {
+    console.error("Live room load failed", error);
+    return;
+  }
+  state.liveRooms = data || [];
+  if (!state.activeLiveRoom && state.liveRooms[0]) state.activeLiveRoom = state.liveRooms[0];
+}
+
+async function loadLiveRoomInvites() {
+  if (!supabaseClient || !state.user) return;
+  const { data, error } = await supabaseClient
+    .from("live_room_invites")
+    .select("id,room_id,sender_id,receiver_id,status,created_at")
+    .or(`sender_id.eq.${state.user.id},receiver_id.eq.${state.user.id}`)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) {
+    console.error("Live room invites load failed", error);
+    return;
+  }
+  state.liveRoomInvites = data || [];
+}
+
+async function ensureConversation(friendId) {
+  if (!supabaseClient || !state.user || !friendId) return "";
+  const participants = [state.user.id, friendId].sort();
+  if (state.activeConversationId && state.activeDmRecipient === friendId) return state.activeConversationId;
+  let { data, error } = await supabaseClient
+    .from("conversations")
+    .select("id,participant_ids,created_at,updated_at")
+    .contains("participant_ids", participants)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    ({ data, error } = await supabaseClient
+      .from("conversations")
+      .insert({ participant_ids: participants })
+      .select("id,participant_ids,created_at,updated_at")
+      .single());
+    if (error) throw error;
+  }
+  state.activeConversationId = data.id;
+  return data.id;
+}
+
+function subscribeSocialRealtime() {
+  if (!supabaseClient || !state.user || state.socialChannel) return;
+  state.socialChannel = supabaseClient
+    .channel(`nakaru-social-${state.user.id}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "friend_requests" }, async (payload) => {
+      const row = payload.new || payload.old || {};
+      if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
+      addNotification("request", row.receiver_id === state.user.id ? "You have a new friend request." : "A friend request was updated.", row.id);
+      await loadFriendRequests();
+      render();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, async (payload) => {
+      const row = payload.new || payload.old || {};
+      if (![row.user_id, row.friend_id].includes(state.user.id)) return;
+      addNotification("accepted", "A friend connection was updated.", row.id);
+      await loadFriendships();
+      render();
+    })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+      const row = payload.new || {};
+      if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
+      if (row.sender_id !== state.user.id) addNotification("message", "You have a new message.", row.id);
+      if (row.conversation_id === state.activeConversationId) await loadDirectMessages();
+      render();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "calls" }, async (payload) => {
+      const row = payload.new || payload.old || {};
+      if (![row.caller_id, row.receiver_id].includes(state.user.id)) return;
+      if (row.receiver_id === state.user.id && row.status === "ringing") addNotification("call", "Incoming call.", row.id);
+      await loadCalls();
+      render();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "live_room_invites" }, async (payload) => {
+      const row = payload.new || payload.old || {};
+      if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
+      if (row.receiver_id === state.user.id && row.status === "pending") addNotification("live", "You were invited to a live room.", row.id);
+      await loadLiveRoomInvites();
+      render();
+    })
+    .subscribe();
+}
+
+async function unsubscribeSocialRealtime() {
+  if (state.socialChannel && supabaseClient) {
+    await supabaseClient.removeChannel(state.socialChannel);
+  }
+  state.socialChannel = null;
+}
+
 function setPage(page) {
+  if (page === "golive") page = "live";
   state.page = page;
+  state.sidebarOpen = false;
   if (page === "edit-profile" && state.user) state.profileEditing = true;
   if (page === "public-rooms") loadRoomMessages(state.activeRoom).finally(render);
-  if (page === "inbox") {
+  if (["search", "friends", "friend-requests", "messages", "calls", "live", "inbox"].includes(page)) {
+    loadSocialData().finally(render);
+  }
+  if (page === "messages" || page === "inbox") {
     loadPublicProfiles()
       .then(loadDirectMessages)
       .finally(render);
   }
   if (page === "video") {
     state.videoComposerOpen = true;
+    state.deviceVideoComposerOpen = true;
     state.youtubeStatus = "";
+    state.deviceVideoStatus = "";
   }
   render();
 }
@@ -643,6 +910,91 @@ function cancelProfile() {
   setPage("profile");
 }
 
+async function searchUsers(event) {
+  event?.preventDefault();
+  const value = event ? String(new FormData(event.currentTarget).get("search") || "") : state.socialSearch;
+  state.socialSearch = value.trim();
+  if (!state.socialSearch) {
+    state.searchResults = [];
+    state.searchStatus = "Search by username or display name.";
+    render();
+    return;
+  }
+  await loadPublicProfiles();
+  const query = state.socialSearch.toLowerCase();
+  state.searchResults = state.publicProfiles
+    .filter((profile) => profile.id !== state.user?.id)
+    .filter((profile) => `${profile.username || ""} ${profile.display_name || ""}`.toLowerCase().includes(query))
+    .slice(0, 20);
+  state.searchStatus = state.searchResults.length ? "" : "No users found yet.";
+  render();
+}
+
+async function sendFriendRequest(receiverId) {
+  if (!state.user) {
+    state.socialStatus = "Sign in to send friend requests.";
+    render();
+    return;
+  }
+  if (!receiverId || receiverId === state.user.id) return;
+  try {
+    const existing = [...state.incomingRequests, ...state.outgoingRequests].find((request) => [request.sender_id, request.receiver_id].includes(receiverId));
+    if (existing?.status === "pending") {
+      state.socialStatus = "Friend request is already pending.";
+      render();
+      return;
+    }
+    const { error } = await supabaseClient.from("friend_requests").insert({ sender_id: state.user.id, receiver_id: receiverId, status: "pending" });
+    if (error) throw error;
+    state.socialStatus = "Friend request sent.";
+    await loadFriendRequests();
+  } catch (error) {
+    console.error("Friend request failed", error);
+    state.socialStatus = "Friend request could not be sent.";
+  } finally {
+    render();
+  }
+}
+
+async function respondFriendRequest(requestId, status) {
+  const request = state.incomingRequests.find((item) => item.id === requestId);
+  if (!request) return;
+  try {
+    const { error } = await supabaseClient.from("friend_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", requestId);
+    if (error) throw error;
+    if (status === "accepted") {
+      const rows = [
+        { user_id: state.user.id, friend_id: request.sender_id },
+        { user_id: request.sender_id, friend_id: state.user.id }
+      ];
+      const { error: friendError } = await supabaseClient.from("friendships").upsert(rows, { onConflict: "user_id,friend_id" });
+      if (friendError) throw friendError;
+      state.socialStatus = "Friend request accepted.";
+    } else {
+      state.socialStatus = `Friend request ${status}.`;
+    }
+    await loadSocialData();
+  } catch (error) {
+    console.error("Friend request response failed", error);
+    state.socialStatus = "Request could not be updated.";
+  } finally {
+    render();
+  }
+}
+
+async function messageFriend(friendId) {
+  if (!isFriend(friendId)) {
+    state.dmStatus = "You can message this user after you become friends.";
+    render();
+    return;
+  }
+  state.activeDmRecipient = friendId;
+  state.activeConversationId = "";
+  state.page = "messages";
+  await loadDirectMessages();
+  render();
+}
+
 async function createTextPost(event) {
   event.preventDefault();
   const input = event.currentTarget.querySelector("input");
@@ -685,6 +1037,71 @@ async function postYouTube(event) {
     state.youtubeStatus = "Video could not be posted. Please try again soon.";
   } finally {
     state.videoPosting = false;
+    render();
+  }
+}
+
+async function postDeviceVideo(event) {
+  event.preventDefault();
+  if (state.deviceVideoPosting) return;
+  const input = event.currentTarget.querySelector("input[type='file']");
+  const file = input?.files?.[0];
+  if (!state.user) {
+    state.deviceVideoStatus = "Sign in to upload a video.";
+    render();
+    return;
+  }
+  if (!file) {
+    state.deviceVideoStatus = "Choose a video from your device first.";
+    render();
+    return;
+  }
+  if (!file.type.startsWith("video/")) {
+    state.deviceVideoStatus = "Please choose a valid video file.";
+    render();
+    return;
+  }
+  const maxBytes = 120 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    state.deviceVideoStatus = "Please choose a video under 120 MB.";
+    render();
+    return;
+  }
+
+  state.deviceVideoPosting = true;
+  state.deviceVideoStatus = "";
+  render();
+  try {
+    let mediaUrl = "";
+    if (supabaseClient) {
+      const extension = (file.name.split(".").pop() || "mp4").replace(/[^a-z0-9]/gi, "").toLowerCase() || "mp4";
+      const safeName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 42) || "nakaru-video";
+      const path = `videos/${state.user.id}/${Date.now()}-${safeName}.${extension}`;
+      const { error: uploadError } = await supabaseClient.storage.from("nakaru-media").upload(path, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false
+      });
+      if (uploadError) throw uploadError;
+      const { data } = supabaseClient.storage.from("nakaru-media").getPublicUrl(path);
+      mediaUrl = data.publicUrl;
+    } else {
+      mediaUrl = await fileToDataUrl(file);
+    }
+
+    state.lastDeviceVideoPost = await savePost({
+      post_type: "video",
+      content: "Shared a video from their device.",
+      media_url: mediaUrl
+    });
+    state.deviceVideoStatus = "";
+    state.deviceVideoComposerOpen = false;
+    input.value = "";
+  } catch (error) {
+    console.error("Device video upload failed", error);
+    state.deviceVideoStatus = "Video could not be uploaded. Please try again soon.";
+  } finally {
+    state.deviceVideoPosting = false;
     render();
   }
 }
@@ -791,24 +1208,45 @@ async function sendDm(event) {
     render();
     return;
   }
+  if (!isFriend(state.activeDmRecipient)) {
+    state.dmStatus = "You can message this user after you become friends.";
+    render();
+    return;
+  }
   if (state.activeDmRecipient && supabaseClient) {
     try {
+      const conversationId = await ensureConversation(state.activeDmRecipient);
       const { data, error } = await supabaseClient
-        .from("direct_messages")
-        .insert({ sender_id: state.user.id, recipient_id: state.activeDmRecipient, text })
-        .select("id,sender_id,recipient_id,text,created_at")
+        .from("messages")
+        .insert({ conversation_id: conversationId, sender_id: state.user.id, receiver_id: state.activeDmRecipient, body: text, read: false })
+        .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
         .single();
       if (error) throw error;
-      state.dmMessages = [...state.dmMessages, data];
+      state.dmMessages = [...state.dmMessages, { ...data, text: data.body }];
       input.value = "";
       state.dmStatus = "";
       render();
       return;
     } catch (error) {
-      console.error("Direct message send failed", error);
-      state.dmStatus = "Messaging is temporarily unavailable. Please try again soon.";
-      render();
-      return;
+      console.error("Conversation message send failed", error);
+      try {
+        const { data, error: fallbackError } = await supabaseClient
+          .from("direct_messages")
+          .insert({ sender_id: state.user.id, recipient_id: state.activeDmRecipient, text })
+          .select("id,sender_id,recipient_id,text,created_at")
+          .single();
+        if (fallbackError) throw fallbackError;
+        state.dmMessages = [...state.dmMessages, data];
+        input.value = "";
+        state.dmStatus = "";
+        render();
+        return;
+      } catch (fallbackError) {
+        console.error("Direct message send failed", fallbackError);
+        state.dmStatus = "Messaging is temporarily unavailable. Please try again soon.";
+        render();
+        return;
+      }
     }
   }
   state.threads = state.threads.map((thread) => {
@@ -818,6 +1256,163 @@ async function sendDm(event) {
   writeLocal("nakaru-dm-threads", state.threads);
   input.value = "";
   render();
+}
+
+async function startFriendCall(friendId, type = "video") {
+  if (!isFriend(friendId)) {
+    state.callStatus = "You can call this user after you become friends.";
+    setPage("calls");
+    return;
+  }
+  try {
+    const roomId = `call_${crypto.randomUUID()}`;
+    const { data, error } = await supabaseClient
+      .from("calls")
+      .insert({ caller_id: state.user.id, receiver_id: friendId, call_type: type, status: "ringing", room_id: roomId })
+      .select("id,caller_id,receiver_id,call_type,status,room_id,created_at,ended_at")
+      .single();
+    if (error) throw error;
+    state.activeCallId = data.id;
+    state.callRoom = data.room_id;
+    state.activeDmRecipient = friendId;
+    state.page = "calls";
+    await connectCall(type, true);
+    await loadCalls();
+  } catch (error) {
+    console.error("Call start failed", error);
+    state.callStatus = "Call could not start. Please try again.";
+    render();
+  }
+}
+
+async function acceptCall(callId) {
+  const call = state.calls.find((item) => item.id === callId);
+  if (!call) return;
+  try {
+    const { error } = await supabaseClient.from("calls").update({ status: "accepted" }).eq("id", callId);
+    if (error) throw error;
+    state.activeCallId = call.id;
+    state.callRoom = call.room_id;
+    state.activeDmRecipient = call.caller_id === state.user.id ? call.receiver_id : call.caller_id;
+    state.page = "calls";
+    await connectCall(call.call_type || "video", false);
+    await loadCalls();
+  } catch (error) {
+    console.error("Call accept failed", error);
+    state.callStatus = "Call could not be accepted.";
+    render();
+  }
+}
+
+async function declineCall(callId) {
+  try {
+    const { error } = await supabaseClient.from("calls").update({ status: "declined", ended_at: new Date().toISOString() }).eq("id", callId);
+    if (error) throw error;
+    state.callStatus = "Call declined.";
+    await loadCalls();
+  } catch (error) {
+    console.error("Call decline failed", error);
+    state.callStatus = "Call could not be declined.";
+  } finally {
+    render();
+  }
+}
+
+async function endActiveCall() {
+  await stopCamera(false);
+  if (state.activeCallId && supabaseClient) {
+    await supabaseClient.from("calls").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", state.activeCallId);
+  }
+  state.activeCallId = "";
+  state.callStatus = "Call ended.";
+  await loadCalls();
+  render();
+}
+
+async function createLiveRoom(event) {
+  event?.preventDefault();
+  if (!state.user) {
+    state.liveRoomStatus = "Sign in to create a live room.";
+    render();
+    return;
+  }
+  const form = event ? new FormData(event.currentTarget) : null;
+  const roomName = String(form?.get("roomName") || state.callRoom || "Nakaru Live Room").trim();
+  try {
+    const { data, error } = await supabaseClient
+      .from("live_rooms")
+      .insert({ host_id: state.user.id, room_name: roomName, room_url: `${redirectUrl()}#live`, is_active: true })
+      .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
+      .single();
+    if (error) throw error;
+    state.activeLiveRoom = data;
+    state.callRoom = data.id;
+    state.liveRoomStatus = "Live room created. Invite friends or start video.";
+    await loadLiveRooms();
+  } catch (error) {
+    console.error("Live room create failed", error);
+    state.liveRoomStatus = "Live room could not be created.";
+  } finally {
+    render();
+  }
+}
+
+async function inviteFriendToLiveRoom(friendId) {
+  if (!isFriend(friendId)) {
+    state.liveRoomStatus = "Only accepted friends can be invited.";
+    render();
+    return;
+  }
+  try {
+    if (!state.activeLiveRoom) await createLiveRoom();
+    if (!state.activeLiveRoom) return;
+    const { error } = await supabaseClient.from("live_room_invites").insert({
+      room_id: state.activeLiveRoom.id,
+      sender_id: state.user.id,
+      receiver_id: friendId,
+      status: "pending"
+    });
+    if (error) throw error;
+    state.liveRoomStatus = "Live room invite sent.";
+    await loadLiveRoomInvites();
+  } catch (error) {
+    console.error("Live room invite failed", error);
+    state.liveRoomStatus = "Invite could not be sent.";
+  } finally {
+    render();
+  }
+}
+
+async function acceptLiveInvite(inviteId) {
+  const invite = state.liveRoomInvites.find((item) => item.id === inviteId);
+  if (!invite) return;
+  try {
+    const { error } = await supabaseClient.from("live_room_invites").update({ status: "accepted" }).eq("id", inviteId);
+    if (error) throw error;
+    state.callRoom = invite.room_id;
+    state.page = "live";
+    state.liveRoomStatus = "Live invite accepted. Joining room...";
+    await joinCall("video");
+    await loadLiveRoomInvites();
+  } catch (error) {
+    console.error("Live invite accept failed", error);
+    state.liveRoomStatus = "Live invite could not be accepted.";
+    render();
+  }
+}
+
+async function declineLiveInvite(inviteId) {
+  try {
+    const { error } = await supabaseClient.from("live_room_invites").update({ status: "declined" }).eq("id", inviteId);
+    if (error) throw error;
+    state.liveRoomStatus = "Live invite declined.";
+    await loadLiveRoomInvites();
+  } catch (error) {
+    console.error("Live invite decline failed", error);
+    state.liveRoomStatus = "Live invite could not be declined.";
+  } finally {
+    render();
+  }
 }
 
 function callRoomId() {
@@ -983,12 +1578,16 @@ function renderPost(post) {
       <div class="post-head">${avatar({ display_name: post.author })}<div><strong>${escapeHtml(post.author || "Nakaru Member")}</strong><span>${formatTime(post.created_at)}</span></div></div>
       <p>${escapeHtml(post.content || "")}</p>
       ${postType === "youtube" && post.youtube_embed_url ? `<div class="video-frame"><iframe src="${escapeHtml(post.youtube_embed_url)}" title="Nakaru-San YouTube post" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
+      ${postType === "video" && post.media_url ? `<div class="video-frame uploaded-video"><video src="${escapeHtml(post.media_url)}" controls playsinline preload="metadata"></video></div>` : ""}
       <div class="post-actions"><button type="button">${post.likes || 0} Likes</button><button type="button">${post.comments_count || post.comments || 0} Comments</button><button type="button">Reply</button></div>
     </article>
   `;
 }
 
 function renderVideoOnly(post) {
+  if (post?.media_url) {
+    return `<div class="posted-video-only"><div class="video-frame uploaded-video"><video src="${escapeHtml(post.media_url)}" controls playsinline preload="metadata"></video></div></div>`;
+  }
   if (!post?.youtube_embed_url) {
     return `<p class="empty-state">Video posted. Open the live feed to view it.</p>`;
   }
@@ -1043,6 +1642,31 @@ function profileCard(editing = false) {
   `;
 }
 
+function renderAboutSection() {
+  const cards = [
+    ["Anime & Manga Forums", "Share theories, reviews, reactions, debates, and favorite moments."],
+    ["Gaming Community", "Talk games, builds, updates, battles, clips, and gaming culture."],
+    ["Go Live & Connect", "Start live rooms, hang out with friends, and connect face-to-face."],
+    ["Blog Your Thoughts", "Post your feelings, opinions, stories, reviews, and creative ideas."]
+  ];
+  return `
+    <section class="about-section panel" id="about">
+      <div class="about-glow" aria-hidden="true"></div>
+      <div class="about-copy">
+        <span class="eyebrow">About Nakaru-San</span>
+        <h2>Anime, gaming, friendship, and fandom under one roof.</h2>
+        <p>Nakaru-San is more than a website. It is a community built for anime lovers, gamers, creators, streamers, and fans who want a place to belong. Whether you are posting your latest anime theory, reacting to a new episode, debating your favorite game, sharing your thoughts in a blog post, or going live with the community, Nakaru-San gives you a space to be heard.</p>
+        <p>Here, fans can connect through posts, forums, private messages, voice calls, video calls, live rooms, and real conversations. It is a place where anime culture, gaming culture, friendship, creativity, and fandom all come together.</p>
+        <p>Nakaru-San was created to give people a home where they can express themselves, meet others who love the same worlds they love, and build a community that feels alive.</p>
+        <div class="hero-actions"><button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button><button class="ghost-action" onclick="setPage('public-rooms')" type="button">Explore Chatrooms</button></div>
+      </div>
+      <div class="about-card-grid">
+        ${cards.map(([title, description]) => `<article class="about-card"><span aria-hidden="true">◆</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></article>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderPage() {
   const profilePosts = state.posts.filter((post) => post.user_id === state.user?.id);
   const activeThread = state.threads.find((thread) => thread.id === state.activeThread) || state.threads[0];
@@ -1073,12 +1697,18 @@ function renderPage() {
   if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div><div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
   if (state.page === "edit-profile") return `<main class="page-grid">${state.user ? profileCard(state.profileEditing) : authView()}</main>`;
   if (state.page === "video") return `
-    <main class="page-grid"><section class="panel video-post-panel"><div class="panel-title"><span class="eyebrow">Video link post</span><h2>Post a YouTube link</h2></div>
-      ${state.videoComposerOpen ? `<form class="form-grid" onsubmit="postYouTube(event)"><label>YouTube URL<input placeholder="https://www.youtube.com/watch?v=..." /></label><button class="primary-action" ${state.videoPosting ? "disabled" : ""} type="submit">${state.videoPosting ? "Posting..." : "Post Video Link"}</button></form>` : renderVideoOnly(state.lastVideoPost)}
-      ${state.youtubeStatus ? `<p class="status-text">${escapeHtml(state.youtubeStatus)}</p>` : ""}
-    </section></main>
+    <main class="video-post-layout">
+      <section class="panel video-post-panel"><div class="panel-title"><span class="eyebrow">Video link post</span><h2>Post a YouTube link</h2></div>
+        ${state.videoComposerOpen ? `<form class="form-grid" onsubmit="postYouTube(event)"><label>YouTube URL<input placeholder="https://www.youtube.com/watch?v=..." /></label><button class="primary-action" ${state.videoPosting ? "disabled" : ""} type="submit">${state.videoPosting ? "Posting..." : "Post Video Link"}</button></form>` : renderVideoOnly(state.lastVideoPost)}
+        ${state.youtubeStatus ? `<p class="status-text">${escapeHtml(state.youtubeStatus)}</p>` : ""}
+      </section>
+      <section class="panel video-post-panel"><div class="panel-title"><span class="eyebrow">Device video post</span><h2>Upload a video from your device</h2></div>
+        ${state.deviceVideoComposerOpen ? `<form class="form-grid" onsubmit="postDeviceVideo(event)"><label class="file-button wide">Choose Video<input type="file" accept="video/*" /></label><small class="auth-hint">Upload original clips, reactions, edits, gameplay moments, and community videos up to 120 MB.</small><button class="primary-action" ${state.deviceVideoPosting ? "disabled" : ""} type="submit">${state.deviceVideoPosting ? "Uploading..." : "Upload Video"}</button></form>` : renderVideoOnly(state.lastDeviceVideoPost)}
+        ${state.deviceVideoStatus ? `<p class="status-text">${escapeHtml(state.deviceVideoStatus)}</p>` : ""}
+      </section>
+    </main>
   `;
-  if (state.page === "golive") return `
+  if (state.page === "golive" || state.page === "live") return `
     <main class="content-layout">
       <section class="panel live-panel">
         <div class="panel-title"><span class="eyebrow">GoLive</span><h2>Livestream and call room</h2></div>
@@ -1123,6 +1753,7 @@ function renderPage() {
     <main class="page-grid">
       <section class="hero panel"><div><span class="eyebrow">Anime Forum - Gaming Rooms - Live Community</span><h1>Nakaru-San</h1><p>A dark anime-style social platform for watch parties, gaming squads, creators, public chatrooms, private messages, and live video rooms.</p><div class="hero-actions"><button class="primary-action" onclick="setPage('feed')" type="button">Open Live Feed</button><button class="ghost-action" onclick="setPage('public-rooms')" type="button">Join Chatrooms</button><button class="ghost-action" onclick="setPage('golive')" type="button">Go Live</button></div></div><div class="hero-card"><img src="./nakaru-san-logo.png" alt="Nakaru-San logo" /></div></section>
       <section class="stats-row"><span class="stat-pill"><strong>${rooms.length}</strong>Public rooms</span><span class="stat-pill"><strong>${state.posts.length}</strong>Feed posts</span><span class="stat-pill"><strong>${state.threads.length}</strong>DM threads</span><span class="stat-pill"><strong>${state.user ? "Online" : "Demo"}</strong>Account mode</span></section>
+      ${renderAboutSection()}
     </main>
   `;
 }
@@ -1130,8 +1761,29 @@ function renderPage() {
 function renderKanjiRain() {
   return `
     <div class="kanji-rain" aria-hidden="true">
-      ${kanjiRainItems.map(([char, left, duration, delay]) => `<span style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s;">${char}</span>`).join("")}
+      ${kanjiRainItems.map(([char, left, duration, delay, tone]) => `<span class="${tone === "gold" ? "gold" : "purple"}" style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s;">${char}</span>`).join("")}
     </div>
+  `;
+}
+
+function renderLogoSidebar(nav) {
+  return `
+    <div class="sidebar-scrim ${state.sidebarOpen ? "open" : ""}" onclick="toggleSidebar(false)" aria-hidden="${state.sidebarOpen ? "false" : "true"}"></div>
+    <aside class="logo-sidebar ${state.sidebarOpen ? "open" : ""}" aria-label="Nakaru-San menu">
+      <div class="sidebar-head">
+        <img src="./nakaru-san-logo.png" alt="" />
+        <div><span class="eyebrow">Nakaru-San</span><strong>Community Menu</strong></div>
+        <button class="sidebar-close" onclick="toggleSidebar(false)" type="button" aria-label="Close menu">×</button>
+      </div>
+      <p>Jump into the anime forum, gaming rooms, live feed, messages, and the new About Nakaru-San community story.</p>
+      <div class="sidebar-links">
+        ${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}
+        <button onclick="toggleSidebar(false); document.getElementById('about')?.scrollIntoView({ behavior: 'smooth', block: 'start' });" type="button">About Nakaru-San</button>
+      </div>
+      <div class="sidebar-cta">
+        <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
+      </div>
+    </aside>
   `;
 }
 
@@ -1171,7 +1823,8 @@ function render() {
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="setPage('home')" type="button"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" type="button">Sign out</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" type="button">Sign out</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      ${renderLogoSidebar(nav)}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
       ${bootWarnings.length ? `<div class="demo-banner">${escapeHtml(bootWarnings[bootWarnings.length - 1])}</div>` : ""}
@@ -1186,6 +1839,7 @@ function render() {
 
 window.state = state;
 window.setPage = setPage;
+window.toggleSidebar = toggleSidebar;
 window.submitAuth = submitAuth;
 window.social = social;
 window.updateProfile = updateProfile;
@@ -1194,6 +1848,7 @@ window.saveProfile = saveProfile;
 window.cancelProfile = cancelProfile;
 window.createTextPost = createTextPost;
 window.postYouTube = postYouTube;
+window.postDeviceVideo = postDeviceVideo;
 window.sendRoomMessage = sendRoomMessage;
 window.setDmRecipient = setDmRecipient;
 window.sendDm = sendDm;
