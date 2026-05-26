@@ -28,6 +28,10 @@ async function copyDirectory(from, to) {
   }
 }
 
+function inlineScript(value) {
+  return value.replace(/<\/script/gi, "<\\/script").replace(/<!--/g, "<\\!--");
+}
+
 await fs.rm(dist, { recursive: true, force: true });
 await fs.mkdir(dist, { recursive: true });
 
@@ -48,6 +52,59 @@ await fs.writeFile(
   `window.NAKARU_CONFIG = ${JSON.stringify(config, null, 2)};\n`,
   "utf8"
 );
+
+const inlineCss = await fs.readFile(path.join(dist, "styles.css"), "utf8");
+const inlineSupabase = await fs.readFile(path.join(dist, "supabase.min.js"), "utf8");
+const inlineApp = await fs.readFile(path.join(dist, "app.js"), "utf8");
+const inlineConfig = `window.NAKARU_CONFIG = ${JSON.stringify(config, null, 2)};`;
+
+const standaloneIndex = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nakaru-San</title>
+    <meta name="description" content="Nakaru-San anime and gaming social community." />
+    <style>${inlineCss}</style>
+    <script>${inlineScript(inlineConfig)}</script>
+    <script>${inlineScript(inlineSupabase)}</script>
+    <script>
+      window.NAKARU_BOOT_RENDERED = false;
+      window.addEventListener("error", function (event) {
+        console.error("Nakaru-San boot error", event.error || event.message);
+        var app = document.getElementById("app");
+        if (app && !window.NAKARU_BOOT_RENDERED) {
+          app.innerHTML = '<main class="app-shell"><section class="hero panel"><div><span class="eyebrow">Nakaru-San</span><h1>Nakaru-San</h1><p>The site loaded, but the app script hit a browser error. Please refresh once or clear the old site cache.</p></div></section></main>';
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      <main class="app-shell">
+        <section class="hero panel">
+          <div>
+            <span class="eyebrow">Nakaru-San</span>
+            <h1>Nakaru-San</h1>
+            <p>Loading the anime and gaming community platform...</p>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>${inlineScript(inlineApp)}</script>
+    <script>
+      setTimeout(function () {
+        var app = document.getElementById("app");
+        if (app && app.textContent.indexOf("Loading the anime and gaming community platform") !== -1) {
+          app.innerHTML = '<main class="app-shell"><section class="hero panel"><div><span class="eyebrow">Nakaru-San</span><h1>Nakaru-San</h1><p>The app is still loading. Refresh once, and if this remains, confirm JavaScript is enabled for this site.</p></div></section></main>';
+        }
+      }, 3500);
+    </script>
+  </body>
+</html>
+`;
+
+await fs.writeFile(path.join(dist, "index.html"), standaloneIndex, "utf8");
 
 for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png"]) {
   try {

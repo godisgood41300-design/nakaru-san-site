@@ -127,11 +127,12 @@ Use this setup for Render Static Site:
 
 1. Create a new Render Static Site.
 2. Connect the GitHub repo containing this folder.
-3. Build Command: `npm run build`
-4. Publish Directory: `dist`
-5. Do not enter a Start Command.
-6. Add the `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` environment variables if you want to override the included public fallback config.
-7. Deploy.
+3. If these files are at the top of the repository, leave Root Directory blank. If the whole folder is inside another folder, set Root Directory to that folder.
+4. Build Command: `npm run build`
+5. Publish Directory: `dist`
+6. Do not enter a Start Command.
+7. Add the `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` environment variables if you want to override the included public fallback config.
+8. Deploy.
 
 For the apex domain, use:
 

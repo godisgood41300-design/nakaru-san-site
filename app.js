@@ -1,4 +1,4 @@
-const version = "20260525-static-deploy-fix";
+﻿const version = "20260525-static-deploy-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -100,7 +100,7 @@ const state = {
 };
 state.savedProfile = { ...state.profile };
 
-let supabase = null;
+let supabaseClient = null;
 let supabaseRetryCount = 0;
 
 function validHttpUrl(value) {
@@ -160,11 +160,11 @@ function setupSupabaseClient() {
   }
 }
 
-supabase = setupSupabaseClient();
+supabaseClient = setupSupabaseClient();
 
 function ensureSupabaseClient() {
-  if (!supabase) supabase = setupSupabaseClient();
-  return supabase;
+  if (!supabaseClient) supabaseClient = setupSupabaseClient();
+  return supabaseClient;
 }
 
 function clearStoredSession() {
@@ -173,7 +173,7 @@ function clearStoredSession() {
 }
 
 function scheduleSupabaseRetry() {
-  if (supabase || !hasUsableSupabaseConfig()) return;
+  if (supabaseClient || !hasUsableSupabaseConfig()) return;
 
   window.setTimeout(async () => {
     if (ensureSupabaseClient()) {
@@ -264,21 +264,21 @@ async function init() {
   state.user = readLocal("nakaru-session", null);
   render();
 
-  if (!supabase) {
+  if (!supabaseClient) {
     scheduleSupabaseRetry();
   }
 
-  if (!supabase) return;
+  if (!supabaseClient) return;
 
   await initSupabaseSession();
 }
 
 async function initSupabaseSession() {
   try {
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
     state.user = data.session?.user || state.user;
-    supabase.auth.onAuthStateChange((_event, session) => {
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
       state.user = session?.user || readLocal("nakaru-session", null);
       afterAuthChange();
     });
@@ -287,7 +287,7 @@ async function initSupabaseSession() {
     console.error("Supabase session load failed", error);
     clearStoredSession();
     try {
-      await supabase.auth.signOut({ scope: "local" });
+      await supabaseClient.auth.signOut({ scope: "local" });
     } catch (signOutError) {
       console.warn("Could not clear local Supabase session", signOutError);
     }
@@ -310,8 +310,8 @@ async function afterAuthChange() {
 
 async function loadProfile() {
   if (!state.user) return;
-  if (supabase) {
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", state.user.id).maybeSingle();
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient.from("profiles").select("*").eq("id", state.user.id).maybeSingle();
     if (error) console.error("Profile load failed", error);
     state.profile = data || {
       id: state.user.id,
@@ -329,8 +329,8 @@ async function loadProfile() {
 }
 
 async function loadPosts() {
-  if (!supabase) return;
-  const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(80);
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient.from("posts").select("*").order("created_at", { ascending: false }).limit(80);
   if (error) {
     console.error("Post load failed", error);
     return;
@@ -362,7 +362,7 @@ async function submitAuth(event) {
   try {
     if (ensureSupabaseClient()) {
       if (state.authMode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email,
           password,
           options: {
@@ -378,7 +378,7 @@ async function submitAuth(event) {
         }
         state.user = data.user;
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
         state.user = data.user;
       }
@@ -425,7 +425,7 @@ async function social(provider) {
     render();
     return;
   }
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirectUrl() } });
+  const { error } = await supabaseClient.auth.signInWithOAuth({ provider, options: { redirectTo: redirectUrl() } });
   if (error) {
     console.error("OAuth failed", error);
     state.authStatus = `${option?.label || "Social login"} is not enabled yet.`;
@@ -468,8 +468,8 @@ async function saveProfile() {
     updated_at: new Date().toISOString()
   };
   try {
-    if (supabase) {
-      const { error } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from("profiles").upsert(row, { onConflict: "id" });
       if (error) throw error;
     } else {
       const profiles = readLocal("nakaru-local-profiles", {});
@@ -554,8 +554,8 @@ async function savePost(postInput) {
     created_at: new Date().toISOString(),
     ...postInput
   };
-  if (supabase) {
-    const { data, error } = await supabase.from("posts").insert(post).select().single();
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient.from("posts").insert(post).select().single();
     if (error) throw error;
     state.posts = [data, ...state.posts];
     return data;
@@ -617,7 +617,7 @@ function stopCamera() {
 }
 
 async function signOut() {
-  if (supabase) await supabase.auth.signOut();
+  if (supabaseClient) await supabaseClient.auth.signOut();
   localStorage.removeItem("nakaru-session");
   state.user = null;
   state.profileEditing = false;
@@ -758,9 +758,9 @@ function renderMerchBanner() {
       <div class="merch-image">
         <img src="./nakaru-hoodies-banner.png" alt="Nakaru-San hoodie and sweatsuit collection" onload="this.closest('.merch-banner').classList.add('has-merch-image');" onerror="this.closest('.merch-image').classList.add('use-fallback'); this.remove();" />
         <div class="hoodie-fallback" aria-hidden="true">
-          <span class="hoodie-card hoodie-one"><b>中</b></span>
+          <span class="hoodie-card hoodie-one"><b>ä¸­</b></span>
           <span class="hoodie-card hoodie-two"><b>N</b></span>
-          <span class="hoodie-card hoodie-three"><b>絆</b></span>
+          <span class="hoodie-card hoodie-three"><b>çµ†</b></span>
         </div>
       </div>
     </section>
@@ -768,6 +768,7 @@ function renderMerchBanner() {
 }
 
 function render() {
+  window.NAKARU_BOOT_RENDERED = true;
   const nav = [
     ["home", "Home"],
     ["feed", "Live Feed"],
@@ -813,3 +814,5 @@ window.stopCamera = stopCamera;
 window.signOut = signOut;
 
 init();
+
+

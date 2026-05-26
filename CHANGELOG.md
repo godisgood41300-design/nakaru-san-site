@@ -143,3 +143,22 @@
 - Added a Render Static Site blueprint as `render-static.yaml`.
 - README now gives Static Site deployment as the primary Render setup.
 - New repository package can be deployed with Build Command `npm run build` and Publish Directory `dist`.
+
+## 2026-05-26 - Self-contained static build
+
+- `dist/index.html` now inlines the CSS, public config, Supabase browser library, and app JavaScript.
+- This prevents Render/IONOS from showing only the loading screen when separate asset paths are cached, stale, or uploaded incorrectly.
+- Added a startup guard that shows a readable message if a real browser runtime error occurs.
+
+## 2026-05-26 - Render Static Site final package
+
+- Updated `render.yaml` so Render treats the project as a Static Site and publishes `dist`.
+- Fixed the Supabase Project URL checker so `.supabase.co` URLs are accepted correctly.
+- Added `README-STATIC-DEPLOY.txt` with the exact Render settings for the new repository.
+- Verified the self-contained `dist/index.html` boots locally and does not remain on the loading screen.
+
+## 2026-05-26 - Render Web Service package
+
+- Added `render-web-service.yaml` for Render Web Service deployments.
+- Added `README-WEB-SERVICE-DEPLOY.txt` with the exact `npm run build` and `npm start` setup.
+- Prepared a separate web-service zip for `https://nakaru-san-site-1.onrender.com/`.
