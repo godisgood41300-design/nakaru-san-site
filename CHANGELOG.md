@@ -106,3 +106,10 @@
 - Updated the hoodie banner to show the real merch image cleanly without the fallback artwork.
 - Increased kanji size, glow, and opacity so the background effect is more noticeable.
 - Updated the build so every file in `public/` is copied into `dist/`.
+
+## 2026-05-26 - Render and IONOS compatible package
+
+- Added public Supabase fallback config so the app can work when served from Render or plain IONOS Webspace.
+- Updated the Render Web Service server to use the same public fallback if environment variables are missing.
+- Build now syncs IONOS-compatible root files from `dist/`.
+- README now explains the IONOS DNS-to-Render setup and the IONOS Webspace fallback.

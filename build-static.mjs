@@ -3,6 +3,12 @@ import path from "node:path";
 
 const root = process.cwd();
 const dist = path.join(root, "dist");
+const fallbackConfig = {
+  supabaseUrl: "https://rawpuvxrexgfsrgjtcep.supabase.co",
+  supabaseAnonKey: "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
+  appUrl: "https://nakaru-san.nakaru-san.com",
+  instagramAuthUrl: ""
+};
 
 async function copyFile(from, to) {
   await fs.mkdir(path.dirname(to), { recursive: true });
@@ -31,10 +37,10 @@ await copyFile(path.join(root, "static", "styles.css"), path.join(dist, "styles.
 await copyDirectory(path.join(root, "public"), dist);
 
 const config = {
-  supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
-  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "",
-  appUrl: process.env.VITE_APP_URL || process.env.APP_URL || "",
-  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || ""
+  supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || fallbackConfig.supabaseUrl,
+  supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackConfig.supabaseAnonKey,
+  appUrl: process.env.VITE_APP_URL || process.env.APP_URL || fallbackConfig.appUrl,
+  instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || fallbackConfig.instagramAuthUrl
 };
 
 await fs.writeFile(
@@ -43,7 +49,16 @@ await fs.writeFile(
   "utf8"
 );
 
+for (const file of ["index.html", "app.js", "styles.css", "config.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png"]) {
+  try {
+    await copyFile(path.join(dist, file), path.join(root, file));
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+}
+
 console.log("Nakaru-San static build created in dist/");
+console.log("IONOS-compatible root files synced.");
 console.log(`Supabase URL configured: ${config.supabaseUrl ? "yes" : "no"}`);
 console.log(`Supabase anon/publishable key configured: ${config.supabaseAnonKey ? "yes" : "no"}`);
 console.log(`App URL configured: ${config.appUrl || "no"}`);

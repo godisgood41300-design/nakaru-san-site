@@ -7,12 +7,22 @@ const socialProviders = [
   { provider: "twitter", label: "Connect with X" },
   { provider: "instagram", label: "Connect with Instagram", externalUrlKey: "instagramAuthUrl" }
 ];
+const bootWarnings = [];
+const accountServiceWarning = "Account services are temporarily unavailable. Please refresh in a moment.";
+const supabaseRetryLimit = 20;
 const rooms = [
   { id: "anime", name: "Anime", topic: "Watch parties, openings, episode talk" },
   { id: "gaming", name: "Gaming", topic: "Co-op queues, builds, raids, ranked" },
   { id: "manga", name: "Manga", topic: "Chapters, panels, collecting, theories" },
   { id: "general", name: "General", topic: "Community lounge and introductions" },
   { id: "nakaru-san", name: "Nakaru-San", topic: "Platform updates and creator rooms" }
+];
+
+const kanjiRainItems = [
+  ["絆", 4, 18, 0], ["夢", 12, 23, 6], ["光", 20, 17, 12], ["心", 28, 28, 3],
+  ["武", 36, 19, 9], ["影", 44, 25, 15], ["魂", 52, 18, 5], ["月", 60, 24, 11],
+  ["火", 68, 16, 2], ["空", 76, 27, 8], ["道", 84, 20, 14], ["和", 92, 26, 4],
+  ["絆", 8, 31, 17], ["夢", 32, 22, 20], ["光", 57, 29, 22], ["心", 88, 18, 19]
 ];
 
 const demoPosts = [
@@ -90,11 +100,92 @@ const state = {
 };
 state.savedProfile = { ...state.profile };
 
-const supabase = config.supabaseUrl && config.supabaseAnonKey && window.supabase
-  ? window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
+let supabase = null;
+let supabaseRetryCount = 0;
+
+function validHttpUrl(value) {
+  try {
+    const parsed = new URL(String(value || ""));
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function hasPlaceholderSupabaseConfig() {
+  const url = String(config.supabaseUrl || "").toLowerCase();
+  const key = String(config.supabaseAnonKey || "").toLowerCase();
+  return url.includes("your-project-ref") || key.includes("your-public-anon-key") || key.includes("your-public-publishable-key");
+}
+
+function hasDashboardSupabaseUrl() {
+  return String(config.supabaseUrl || "").toLowerCase().includes("supabase.com/dashboard");
+}
+
+function hasProjectSupabaseUrl() {
+  const url = String(config.supabaseUrl || "").toLowerCase();
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url);
+}
+
+function hasUsableSupabaseConfig() {
+  return Boolean(config.supabaseUrl && config.supabaseAnonKey && !hasPlaceholderSupabaseConfig() && !hasDashboardSupabaseUrl() && hasProjectSupabaseUrl());
+}
+
+function setupSupabaseClient() {
+  if (!config.supabaseUrl || !config.supabaseAnonKey) return null;
+  if (hasPlaceholderSupabaseConfig()) {
+    bootWarnings.push("Supabase is not connected yet. Add your real Supabase URL and public key in Render.");
+    return null;
+  }
+  if (hasDashboardSupabaseUrl() || !hasProjectSupabaseUrl()) {
+    bootWarnings.push("Supabase URL is not the Project URL. Use the value ending in .supabase.co from Supabase Project Settings.");
+    return null;
+  }
+  if (!validHttpUrl(config.supabaseUrl)) {
+    bootWarnings.push("Supabase URL is not valid. The site is running in demo mode.");
+    return null;
+  }
+  if (!window.supabase?.createClient) {
+    console.warn("Supabase library is not ready yet.");
+    return null;
+  }
+  try {
+    return window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    })
-  : null;
+    });
+  } catch (error) {
+    console.error("Supabase setup failed", error);
+    bootWarnings.push("Supabase setup failed. The site is running in demo mode.");
+    return null;
+  }
+}
+
+supabase = setupSupabaseClient();
+
+function ensureSupabaseClient() {
+  if (!supabase) supabase = setupSupabaseClient();
+  return supabase;
+}
+
+function scheduleSupabaseRetry() {
+  if (supabase || !hasUsableSupabaseConfig()) return;
+
+  window.setTimeout(async () => {
+    if (ensureSupabaseClient()) {
+      await initSupabaseSession();
+      return;
+    }
+
+    supabaseRetryCount += 1;
+    if (supabaseRetryCount < supabaseRetryLimit) {
+      scheduleSupabaseRetry();
+      return;
+    }
+
+    if (!bootWarnings.includes(accountServiceWarning)) bootWarnings.push(accountServiceWarning);
+    render();
+  }, 500);
+}
 
 function redirectUrl() {
   const origin = config.appUrl || window.location.origin;
@@ -164,23 +255,44 @@ async function hashPassword(password) {
 }
 
 async function init() {
-  if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    state.user = data.session?.user || null;
+  state.user = readLocal("nakaru-session", null);
+  render();
+
+  if (!supabase) {
+    scheduleSupabaseRetry();
+  }
+
+  if (!supabase) return;
+
+  await initSupabaseSession();
+}
+
+async function initSupabaseSession() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    state.user = data.session?.user || state.user;
     supabase.auth.onAuthStateChange((_event, session) => {
-      state.user = session?.user || null;
+      state.user = session?.user || readLocal("nakaru-session", null);
       afterAuthChange();
     });
-  } else {
-    state.user = readLocal("nakaru-session", null);
+    await afterAuthChange();
+  } catch (error) {
+    console.error("Supabase session load failed", error);
+    if (!bootWarnings.includes(accountServiceWarning)) bootWarnings.push(accountServiceWarning);
+    render();
   }
-  await afterAuthChange();
 }
 
 async function afterAuthChange() {
   if (state.user) {
-    await loadProfile();
-    await loadPosts();
+    try {
+      await loadProfile();
+      await loadPosts();
+    } catch (error) {
+      console.error("Data load failed", error);
+      bootWarnings.push("Some account data could not load. The public app is still available.");
+    }
   }
   render();
 }
@@ -237,7 +349,7 @@ async function submitAuth(event) {
   state.authStatus = "";
 
   try {
-    if (supabase) {
+    if (ensureSupabaseClient()) {
       if (state.authMode === "signup") {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -297,7 +409,7 @@ async function social(provider) {
     return;
   }
 
-  if (!supabase) {
+  if (!ensureSupabaseClient()) {
     state.authStatus = "Social login needs Supabase provider setup first.";
     render();
     return;
@@ -616,6 +728,34 @@ function renderPage() {
   `;
 }
 
+function renderKanjiRain() {
+  return `
+    <div class="kanji-rain" aria-hidden="true">
+      ${kanjiRainItems.map(([char, left, duration, delay]) => `<span style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s;">${char}</span>`).join("")}
+    </div>
+  `;
+}
+
+function renderMerchBanner() {
+  return `
+    <section class="merch-banner" aria-label="Nakaru-San hoodie banner">
+      <div class="merch-copy">
+        <span class="eyebrow">Nakaru-San gear</span>
+        <strong>Anime x gaming x streetwear.</strong>
+        <small>Built for the code. Made for the real.</small>
+      </div>
+      <div class="merch-image">
+        <img src="./nakaru-hoodies-banner.png" alt="Nakaru-San hoodie and sweatsuit collection" onload="this.closest('.merch-banner').classList.add('has-merch-image');" onerror="this.closest('.merch-image').classList.add('use-fallback'); this.remove();" />
+        <div class="hoodie-fallback" aria-hidden="true">
+          <span class="hoodie-card hoodie-one"><b>中</b></span>
+          <span class="hoodie-card hoodie-two"><b>N</b></span>
+          <span class="hoodie-card hoodie-three"><b>絆</b></span>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function render() {
   const nav = [
     ["home", "Home"],
@@ -630,9 +770,12 @@ function render() {
   ];
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
+      ${renderKanjiRain()}
       <header class="topbar"><button class="brand" onclick="setPage('home')" type="button"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" type="button">Sign out</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
-      ${!state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Demo mode is active until Supabase config is added. The UI still works locally with saved browser data.</div>` : ""}
+      ${bootWarnings.length ? `<div class="demo-banner">${escapeHtml(bootWarnings[bootWarnings.length - 1])}</div>` : ""}
+      ${(!config.supabaseUrl || !config.supabaseAnonKey) && !bootWarnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Demo mode is active until Supabase config is added. The UI still works locally with saved browser data.</div>` : ""}
       ${renderPage()}
     </div>
   `;

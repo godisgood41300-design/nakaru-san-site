@@ -1,6 +1,6 @@
 window.NAKARU_CONFIG = {
-  "supabaseUrl": "",
-  "supabaseAnonKey": "",
-  "appUrl": "",
+  "supabaseUrl": "https://rawpuvxrexgfsrgjtcep.supabase.co",
+  "supabaseAnonKey": "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
+  "appUrl": "https://nakaru-san.nakaru-san.com",
   "instagramAuthUrl": ""
 };

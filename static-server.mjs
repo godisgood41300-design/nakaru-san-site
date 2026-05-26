@@ -16,13 +16,19 @@ const types = {
   ".gif": "image/gif",
   ".svg": "image/svg+xml"
 };
+const fallbackConfig = {
+  supabaseUrl: "https://rawpuvxrexgfsrgjtcep.supabase.co",
+  supabaseAnonKey: "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
+  appUrl: "https://nakaru-san.nakaru-san.com",
+  instagramAuthUrl: ""
+};
 
 function publicConfig() {
   return {
-    supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
-    supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "",
-    appUrl: process.env.VITE_APP_URL || process.env.APP_URL || "",
-    instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || ""
+    supabaseUrl: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || fallbackConfig.supabaseUrl,
+    supabaseAnonKey: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || fallbackConfig.supabaseAnonKey,
+    appUrl: process.env.VITE_APP_URL || process.env.APP_URL || fallbackConfig.appUrl,
+    instagramAuthUrl: process.env.VITE_INSTAGRAM_AUTH_URL || process.env.INSTAGRAM_AUTH_URL || fallbackConfig.instagramAuthUrl
   };
 }
 

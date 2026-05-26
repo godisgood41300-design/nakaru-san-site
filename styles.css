@@ -36,6 +36,17 @@ body {
     linear-gradient(135deg, #050509 0%, #11111d 52%, #070713 100%);
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 9, 0.42), rgba(5, 5, 9, 0.78)),
+    radial-gradient(circle at 50% 0%, rgba(124, 60, 255, 0.2), transparent 30rem);
+}
+
 button,
 input,
 textarea {
@@ -81,14 +92,63 @@ label {
 }
 
 .app-shell {
+  position: relative;
   min-height: 100vh;
   padding: 6.25rem 1.25rem 2rem;
+}
+
+.kanji-rain {
+  position: fixed;
+  inset: -18vh 0 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.96;
+  mix-blend-mode: screen;
+}
+
+.kanji-rain span {
+  position: absolute;
+  left: var(--x);
+  top: -18vh;
+  color: rgba(196, 142, 255, 0.52);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+  font-size: clamp(3rem, 7vw, 7.4rem);
+  font-weight: 900;
+  text-shadow:
+    0 0 16px rgba(124, 60, 255, 0.72),
+    0 0 38px rgba(168, 85, 247, 0.5),
+    0 0 54px rgba(250, 204, 21, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  filter: drop-shadow(0 0 22px rgba(124, 60, 255, 0.62));
+  animation: kanjiFall var(--duration) linear infinite;
+  animation-delay: var(--delay);
+}
+
+@keyframes kanjiFall {
+  0% {
+    transform: translate3d(-12px, -18vh, 0) rotate(-10deg) scale(0.88);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.82;
+  }
+  52% {
+    opacity: 0.58;
+    text-shadow:
+      0 0 20px rgba(216, 180, 254, 0.82),
+      0 0 52px rgba(124, 60, 255, 0.5);
+  }
+  100% {
+    transform: translate3d(16px, 126vh, 0) rotate(12deg) scale(1.04);
+    opacity: 0;
+  }
 }
 
 .topbar {
   position: fixed;
   inset: 0 0 auto;
-  z-index: 20;
+  z-index: 30;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -98,6 +158,168 @@ label {
   background: rgba(5, 5, 9, 0.9);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(16px);
+}
+
+.merch-banner,
+.version-badge,
+.demo-banner,
+.page-grid,
+.content-layout,
+.inbox-layout {
+  position: relative;
+  z-index: 1;
+}
+
+.merch-banner {
+  display: flex;
+  align-items: end;
+  width: min(1180px, 100%);
+  min-height: clamp(360px, 62vw, 760px);
+  margin: 0 auto 1rem;
+  padding: 1.2rem;
+  overflow: hidden;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(110deg, rgba(5, 5, 9, 0.98), rgba(28, 15, 56, 0.88) 58%, rgba(5, 5, 9, 0.98)),
+    radial-gradient(circle at 80% 30%, rgba(124, 60, 255, 0.38), transparent 16rem);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.32);
+}
+
+.merch-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 34%, rgba(0, 0, 0, 0.12)),
+    linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, 0.34)),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 16px);
+  opacity: 0.5;
+}
+
+.merch-copy,
+.merch-image {
+  position: relative;
+  z-index: 1;
+}
+
+.merch-copy {
+  max-width: min(620px, 100%);
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 8px;
+  background: rgba(5, 5, 9, 0.72);
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(10px);
+}
+
+.merch-banner.has-merch-image .merch-copy {
+  display: none;
+}
+
+.merch-copy strong {
+  font-size: clamp(1.35rem, 3vw, 2.35rem);
+  line-height: 1;
+}
+
+.merch-copy small {
+  max-width: 660px;
+  color: #d9dcec;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.merch-image {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+}
+
+.merch-image img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
+  opacity: 1;
+  filter: saturate(1.04) contrast(1.06) drop-shadow(0 18px 26px rgba(0, 0, 0, 0.42));
+}
+
+.hoodie-fallback {
+  display: none;
+  align-items: end;
+  justify-content: center;
+  gap: 0.72rem;
+  width: 100%;
+  min-height: 100%;
+}
+
+.merch-image.use-fallback .hoodie-fallback {
+  display: flex;
+}
+
+.hoodie-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 94px;
+  color: var(--gold);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 18px 18px 8px 8px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(124, 60, 255, 0.45), transparent 1.8rem),
+    linear-gradient(145deg, #09090f, #19112d 58%, #07070c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 18px 28px rgba(0, 0, 0, 0.36),
+    0 0 24px rgba(124, 60, 255, 0.2);
+}
+
+.hoodie-card::before,
+.hoodie-card::after {
+  content: "";
+  position: absolute;
+  top: 24px;
+  width: 28px;
+  height: 62px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background: linear-gradient(180deg, #08080d, #141123);
+}
+
+.hoodie-card::before {
+  left: -22px;
+  transform: rotate(13deg);
+  border-radius: 16px 4px 12px 16px;
+}
+
+.hoodie-card::after {
+  right: -22px;
+  transform: rotate(-13deg);
+  border-radius: 4px 16px 16px 12px;
+}
+
+.hoodie-card b {
+  position: relative;
+  z-index: 1;
+  font-size: 1.25rem;
+  text-shadow: 0 0 14px rgba(250, 204, 21, 0.36);
+}
+
+.hoodie-two {
+  width: 96px;
+  height: 112px;
+  transform: translateY(-8px);
+}
+
+.hoodie-three {
+  transform: translateY(5px);
 }
 
 .brand {
@@ -844,6 +1066,10 @@ label {
   .hero-card {
     max-width: 320px;
   }
+
+  .merch-banner {
+    min-height: clamp(340px, 72vw, 680px);
+  }
 }
 
 @media (max-width: 720px) {
@@ -877,6 +1103,44 @@ label {
     font-size: 3.4rem;
   }
 
+  .kanji-rain span {
+    font-size: clamp(2.4rem, 16vw, 5rem);
+  }
+
+  .merch-banner {
+    min-height: clamp(300px, 90vw, 520px);
+    padding: 0.85rem;
+  }
+
+  .merch-copy small {
+    font-size: 0.86rem;
+  }
+
+  .hoodie-card {
+    width: 58px;
+    height: 72px;
+  }
+
+  .hoodie-card::before,
+  .hoodie-card::after {
+    top: 20px;
+    width: 20px;
+    height: 46px;
+  }
+
+  .hoodie-card::before {
+    left: -15px;
+  }
+
+  .hoodie-card::after {
+    right: -15px;
+  }
+
+  .hoodie-two {
+    width: 70px;
+    height: 86px;
+  }
+
   .stats-row,
   .edit-profile-grid,
   .card-grid,
@@ -894,5 +1158,13 @@ label {
   .chat-window,
   .dm-window {
     min-height: 350px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kanji-rain span {
+    animation: none;
+    opacity: 0.14;
+    transform: translateY(40vh);
   }
 }

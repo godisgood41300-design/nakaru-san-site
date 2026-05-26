@@ -137,6 +137,22 @@ Use this setup if your Render service type is Web Service:
 
 For your domain, use `VITE_APP_URL=https://nakaru-san.nakaru-san.com`.
 
+## IONOS + Render domain setup
+
+If IONOS only owns the domain and Render hosts the website, do not upload the website to IONOS Webspace. Point the subdomain to Render with DNS:
+
+```text
+Type: CNAME
+Host/Name: nakaru-san
+Value/Target: nakaru-san-site-1.onrender.com
+```
+
+If IONOS locks the CNAME because A/AAAA records exist, disconnect `nakaru-san.nakaru-san.com` from IONOS Webspace or Website Builder first.
+
+## IONOS Webspace fallback
+
+This package also includes root-level `index.html`, `app.js`, `styles.css`, `config.js`, `nakaru-san-logo.png`, and `nakaru-hoodies-banner.png`. If you ever upload directly to IONOS Webspace, upload those root-level files. The included `config.js` uses the public Supabase publishable key, not a secret key.
+
 ## Deploy on Vercel
 
 1. Import the GitHub repo in Vercel.
