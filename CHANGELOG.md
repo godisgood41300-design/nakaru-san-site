@@ -162,3 +162,12 @@
 - Added `render-web-service.yaml` for Render Web Service deployments.
 - Added `README-WEB-SERVICE-DEPLOY.txt` with the exact `npm run build` and `npm start` setup.
 - Prepared a separate web-service zip for `https://nakaru-san-site-1.onrender.com/`.
+
+## 2026-05-26 - Live diagnostics fixes
+
+- Patched profile saving to avoid duplicate default usernames and to retry if the live database is missing `banner_url`.
+- Updated YouTube/text posting to use the live `posts.post_type` field and avoid inserting missing `author`, `likes`, and `comments_count` columns.
+- Added Supabase-backed public chatroom sends/loads using `room_messages`.
+- Added Supabase-backed direct-message structure using `direct_messages.sender_id` and `recipient_id`.
+- Replaced call preview controls with WebRTC video/audio room controls that use Supabase Realtime signaling.
+- Updated `supabase/schema.sql` with the missing chat, direct-message, profile, and post schema fixes.

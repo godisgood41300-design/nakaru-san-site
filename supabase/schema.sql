@@ -11,11 +11,14 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists banner_url text;
+alter table public.profiles add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   author text,
-  type text not null default 'text',
+  post_type text not null default 'text',
   content text,
   media_url text,
   youtube_url text,
@@ -25,6 +28,26 @@ create table if not exists public.posts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.posts add column if not exists post_type text not null default 'text';
+alter table public.posts add column if not exists media_url text;
+alter table public.posts add column if not exists youtube_url text;
+alter table public.posts add column if not exists youtube_embed_url text;
+alter table public.posts add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+    and table_name = 'posts'
+    and column_name = 'type'
+  ) then
+    update public.posts
+    set post_type = coalesce(post_type, type)
+    where post_type is null;
+  end if;
+end $$;
 
 create table if not exists public.post_comments (
   id uuid primary key default gen_random_uuid(),
@@ -66,6 +89,19 @@ create table if not exists public.dm_messages (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.direct_messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid references auth.users(id) on delete cascade,
+  recipient_id uuid references auth.users(id) on delete cascade,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.direct_messages add column if not exists sender_id uuid references auth.users(id) on delete cascade;
+alter table public.direct_messages add column if not exists recipient_id uuid references auth.users(id) on delete cascade;
+alter table public.direct_messages add column if not exists text text;
+alter table public.direct_messages add column if not exists created_at timestamptz not null default now();
+
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
 alter table public.post_comments enable row level security;
@@ -73,6 +109,7 @@ alter table public.room_messages enable row level security;
 alter table public.dm_threads enable row level security;
 alter table public.dm_thread_members enable row level security;
 alter table public.dm_messages enable row level security;
+alter table public.direct_messages enable row level security;
 
 drop policy if exists "profiles readable by everyone" on public.profiles;
 create policy "profiles readable by everyone"
@@ -180,6 +217,40 @@ with check (
     and members.user_id = auth.uid()
   )
 );
+
+drop policy if exists "direct messages visible to sender or recipient" on public.direct_messages;
+create policy "direct messages visible to sender or recipient"
+on public.direct_messages for select
+using (auth.uid() = sender_id or auth.uid() = recipient_id);
+
+drop policy if exists "users send own direct messages" on public.direct_messages;
+create policy "users send own direct messages"
+on public.direct_messages for insert
+with check (
+  auth.uid() = sender_id
+  and recipient_id is not null
+  and length(trim(text)) > 0
+);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+    and schemaname = 'public'
+    and tablename = 'room_messages'
+  ) then
+    alter publication supabase_realtime add table public.room_messages;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+    and schemaname = 'public'
+    and tablename = 'direct_messages'
+  ) then
+    alter publication supabase_realtime add table public.direct_messages;
+  end if;
+end $$;
 
 insert into storage.buckets (id, name, public)
 values ('nakaru-media', 'nakaru-media', true)

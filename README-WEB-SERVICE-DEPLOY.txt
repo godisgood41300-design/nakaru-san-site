@@ -22,3 +22,12 @@ Important:
 - For the existing Render service at https://nakaru-san-site-1.onrender.com/, connect the new GitHub repo or update the existing repo files.
 - In Render, use Manual Deploy -> Clear build cache & deploy after changing files.
 - The Start Command must be npm start. If Render asks for a Publish Directory, you are in Static Site mode instead of Web Service mode.
+
+Supabase:
+- Run supabase/schema.sql in the Supabase SQL Editor after deploying this package.
+- The live database already has profiles/posts/direct_messages, but it was missing room_messages and had older column names.
+- The updated SQL adds/fixes banner_url, post_type, room_messages, and direct message sender/recipient columns.
+- For email verification and social login, add these Redirect URLs in Supabase Auth:
+  https://nakaru-san-site-1.onrender.com/
+  https://nakaru-san.nakaru-san.com/
+  https://nakaru-san.com/
