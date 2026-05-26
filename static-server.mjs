@@ -19,7 +19,7 @@ const types = {
 const fallbackConfig = {
   supabaseUrl: "https://rawpuvxrexgfsrgjtcep.supabase.co",
   supabaseAnonKey: "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
-  appUrl: "https://nakaru-san.nakaru-san.com",
+  appUrl: "https://nakaru-san.com",
   instagramAuthUrl: ""
 };
 

@@ -125,3 +125,9 @@
 - Updated the Web Service server so missing `.js`, `.css`, image, and other asset files do not fall back to `index.html`.
 - Added fallback serving from `public/` and the project root for bundled assets such as `supabase.min.js`.
 - This prevents browsers from trying to run HTML as JavaScript when an asset path is wrong or a deploy is missing a static file.
+
+## 2026-05-26 - Account warning and redirect fix
+
+- Stale or invalid saved browser sessions are now cleared silently instead of showing a public account-services banner.
+- OAuth redirect URLs now prefer the visitor's current domain, which fixes apex-domain use such as `nakaru-san.com`.
+- Updated fallback app URL to `https://nakaru-san.com` for direct IONOS hosting.

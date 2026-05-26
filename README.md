@@ -137,6 +137,14 @@ Use this setup if your Render service type is Web Service:
 
 For your domain, use `VITE_APP_URL=https://nakaru-san.nakaru-san.com`.
 
+If you are using the apex domain instead, use:
+
+```text
+VITE_APP_URL=https://nakaru-san.com
+```
+
+OAuth and email confirmation now prefer the visitor's current domain automatically, but your Supabase redirect allowlist should include both domains you use.
+
 ## IONOS + Render domain setup
 
 If IONOS only owns the domain and Render hosts the website, do not upload the website to IONOS Webspace. Point the subdomain to Render with DNS:
@@ -151,7 +159,7 @@ If IONOS locks the CNAME because A/AAAA records exist, disconnect `nakaru-san.na
 
 ## IONOS Webspace fallback
 
-This package also includes root-level `index.html`, `app.js`, `styles.css`, `config.js`, `nakaru-san-logo.png`, and `nakaru-hoodies-banner.png`. If you ever upload directly to IONOS Webspace, upload those root-level files. The included `config.js` uses the public Supabase publishable key, not a secret key.
+This package also includes root-level `index.html`, `app.js`, `styles.css`, `config.js`, `supabase.min.js`, `nakaru-san-logo.png`, and `nakaru-hoodies-banner.png`. If you ever upload directly to IONOS Webspace, upload those root-level files. The included `config.js` uses the public Supabase publishable key, not a secret key.
 
 ## Deploy on Vercel
 

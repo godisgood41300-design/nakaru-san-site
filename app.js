@@ -167,6 +167,11 @@ function ensureSupabaseClient() {
   return supabase;
 }
 
+function clearStoredSession() {
+  state.user = null;
+  localStorage.removeItem("nakaru-session");
+}
+
 function scheduleSupabaseRetry() {
   if (supabase || !hasUsableSupabaseConfig()) return;
 
@@ -182,13 +187,14 @@ function scheduleSupabaseRetry() {
       return;
     }
 
-    if (!bootWarnings.includes(accountServiceWarning)) bootWarnings.push(accountServiceWarning);
+    console.warn(accountServiceWarning);
+    if (state.page === "edit-profile") state.authStatus = accountServiceWarning;
     render();
   }, 500);
 }
 
 function redirectUrl() {
-  const origin = config.appUrl || window.location.origin;
+  const origin = window.location.origin || config.appUrl;
   return `${origin.replace(/\/$/, "")}/`;
 }
 
@@ -279,7 +285,12 @@ async function initSupabaseSession() {
     await afterAuthChange();
   } catch (error) {
     console.error("Supabase session load failed", error);
-    if (!bootWarnings.includes(accountServiceWarning)) bootWarnings.push(accountServiceWarning);
+    clearStoredSession();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch (signOutError) {
+      console.warn("Could not clear local Supabase session", signOutError);
+    }
     render();
   }
 }
