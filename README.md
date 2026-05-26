@@ -121,6 +121,30 @@ npm run preview
 
 The production files are generated in `dist/`. This build does not require React, Vite, or any downloaded npm package.
 
+## Deploy on Render as a Static Site
+
+Use this setup for Render Static Site:
+
+1. Create a new Render Static Site.
+2. Connect the GitHub repo containing this folder.
+3. Build Command: `npm run build`
+4. Publish Directory: `dist`
+5. Do not enter a Start Command.
+6. Add the `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` environment variables if you want to override the included public fallback config.
+7. Deploy.
+
+For the apex domain, use:
+
+```text
+VITE_APP_URL=https://nakaru-san.com
+```
+
+For the subdomain, use:
+
+```text
+VITE_APP_URL=https://nakaru-san.nakaru-san.com
+```
+
 ## Deploy on Render as a Web Service
 
 Use this setup if your Render service type is Web Service:

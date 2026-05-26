@@ -42,7 +42,7 @@ function sendFile(response, target) {
 
     response.writeHead(200, {
       "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": path.basename(target) === "index.html" ? "no-cache" : "public, max-age=300"
+      "Cache-Control": path.basename(target) === "index.html" ? "no-store, max-age=0" : "public, max-age=60"
     });
     response.end(data);
   });
@@ -72,10 +72,10 @@ http.createServer((request, response) => {
 
   fs.readFile(target, (error, data) => {
     if (!error) {
-      response.writeHead(200, {
-        "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
-        "Cache-Control": path.basename(target) === "index.html" ? "no-cache" : "public, max-age=300"
-      });
+    response.writeHead(200, {
+      "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
+      "Cache-Control": path.basename(target) === "index.html" ? "no-store, max-age=0" : "public, max-age=60"
+    });
       response.end(data);
       return;
     }

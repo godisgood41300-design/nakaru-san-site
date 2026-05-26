@@ -131,3 +131,15 @@
 - Stale or invalid saved browser sessions are now cleared silently instead of showing a public account-services banner.
 - OAuth redirect URLs now prefer the visitor's current domain, which fixes apex-domain use such as `nakaru-san.com`.
 - Updated fallback app URL to `https://nakaru-san.com` for direct IONOS hosting.
+
+## 2026-05-26 - Loading screen cache fix
+
+- Added versioned asset URLs for `styles.css`, `config.js`, `supabase.min.js`, and `app.js`.
+- Reduced Web Service asset cache time and made `index.html` no-store.
+- This prevents old IONOS/Render cached JavaScript from being mixed with the new loading screen HTML.
+
+## 2026-05-26 - Static site rebuild package
+
+- Added a Render Static Site blueprint as `render-static.yaml`.
+- README now gives Static Site deployment as the primary Render setup.
+- New repository package can be deployed with Build Command `npm run build` and Publish Directory `dist`.
