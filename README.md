@@ -33,14 +33,19 @@ This is a clean static rebuild made to avoid old duplicate files, stale deployme
 - Feed rendering
 - Public room message sending
 - Messenger-style inbox UI
+- Top user search with Google Images and YouTube reference search buttons
+- Friend requests, accepted friends, and friend-only direct messages when `supabase/schema.sql` has been run
+- Image/video attachments in public rooms, private rooms, and direct messages
+- Searchable Go Live rooms with friend invites
+- One-to-one audio/video calls over the browser's internet connection through WebRTC
 - Camera/microphone permission preview for GoLive/call pages
 
 ## Features scaffolded for the next production step
 
-- True multi-user WebRTC calls and livestreaming need deployed signaling through Supabase Realtime or a WebRTC provider.
-- Private room membership enforcement is represented in UI and schema, but needs invite management screens.
+- True multi-user livestreaming needs a WebRTC provider for production-scale rooms. One-to-one call signaling is scaffolded through Supabase Realtime.
+- Private room membership enforcement is represented in UI, but stricter per-room membership policies can be added after invite rules are finalized.
 - Likes/comments UI is present; full persistence can be added using the included comments table.
-- Search UI is present; database-backed search can be added with Supabase queries.
+- The top reference search opens public Google Images or YouTube search results. The app does not copy or host those third-party images.
 
 ## Environment variables
 
@@ -94,6 +99,8 @@ https://supabase.com/dashboard/project/your-project-ref/settings/api-keys/legacy
 7. If you also use the apex domain, add it too, for example `https://nakaru-san.com/*`.
 8. Remove any old localhost-only URL if Supabase keeps sending confirmation links there.
 9. Email/password auth is the default account system. Enable social OAuth providers only if you have the matching app credentials and redirect URLs set up.
+
+Run `supabase/schema.sql` again after this update if you want the new Requests, Friends, Messaging, Calls, and Live Room Invite tables. The file uses `create table if not exists`, `alter table`, and `drop policy if exists`, so it is safe to rerun against the current project.
 
 The signup code now sends `emailRedirectTo: window.location.origin`, so new confirmation emails should return to the exact public site the user signed up from. If an old email still points to localhost, sign up again or resend confirmation after updating Supabase URL Configuration.
 

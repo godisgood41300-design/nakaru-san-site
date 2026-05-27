@@ -14,6 +14,19 @@
 - Signup now stores the pending verification email and shows a resend-confirmation-email action.
 - Confirmation links use the current public site URL so users return to the deployed app after verifying.
 
+## 2026-05-27 - Auth timeout, messaging nav, requests, and top search
+
+- Added request timeouts around login, logout, profile save, account refresh, and call cleanup so buttons cannot stay stuck on loading forever.
+- Added top navigation links for Messaging and Requests.
+- Added a top search bar for username/member search.
+- Added a dedicated search results page with user cards, Add Friend, Respond, and Message actions.
+- Added a Requests page that shows incoming friend requests and outgoing pending requests.
+- Added user-driven Google Images and YouTube reference-search buttons that open public search results instead of copying external images into the app.
+- Added Supabase tables and RLS policies for friend requests, friendships, conversations, messages, calls, live rooms, and live room invites.
+- Added searchable Go Live rooms so a user's live room appears in a live directory and can be joined by room search.
+- Added live room friend invites, incoming live invite actions, and internet-based audio/video call controls.
+- Added image/video attachments from a user's device for public chatrooms, private rooms, and direct messages.
+
 ## 2026-05-23 - Production rebuild
 
 - Rebuilt Nakaru-San as a clean Vite + React app.

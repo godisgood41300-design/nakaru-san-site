@@ -170,9 +170,9 @@ label {
   inset: 0 0 auto;
   z-index: 30;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(260px, 1fr) minmax(280px, 460px) auto;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   min-height: 76px;
   padding: 0.7rem 1rem;
   background: rgba(5, 5, 9, 0.9);
@@ -479,6 +479,40 @@ label {
   gap: 0.35rem;
   overflow-x: auto;
   scrollbar-width: thin;
+}
+
+.top-search {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.top-search input {
+  min-width: 0;
+  height: 40px;
+  padding: 0 0.85rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.top-search button {
+  min-height: 40px;
+  padding: 0.55rem 0.72rem;
+  color: #d8dcee;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.top-search button:hover {
+  border-color: rgba(250, 204, 21, 0.38);
+  background: rgba(124, 60, 255, 0.28);
 }
 
 .topbar nav button,
@@ -815,6 +849,50 @@ label {
   color: var(--muted);
 }
 
+.compact-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.user-card-list {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.user-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.user-card strong,
+.user-card span {
+  display: block;
+}
+
+.user-card span {
+  color: var(--muted);
+}
+
+.user-card-actions,
+.reference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.reference-actions {
+  justify-content: flex-start;
+  padding-top: 0.5rem;
+}
+
 .avatar {
   display: grid;
   place-items: center;
@@ -1076,6 +1154,59 @@ label {
   border-top: 1px solid var(--line);
 }
 
+.media-message-form {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.attach-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  color: #f7ebc0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(124, 60, 255, 0.18);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.attach-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.message-media {
+  margin: 0.55rem 0 0;
+}
+
+.message-media img,
+.message-media video {
+  display: block;
+  width: min(320px, 100%);
+  max-height: 280px;
+  object-fit: contain;
+  background: #030307;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 8px;
+}
+
+.message-attachment {
+  display: inline-flex;
+  margin-top: 0.55rem;
+  color: var(--gold);
+  font-weight: 900;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1095,6 +1226,17 @@ label {
 .room-card h3,
 .room-card p {
   margin: 0;
+}
+
+.live-room-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.live-room-card span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .room-card svg {
@@ -1233,6 +1375,15 @@ label {
   background: linear-gradient(135deg, var(--gold), #fde68a);
 }
 
+.bubble p {
+  margin: 0;
+}
+
+.bubble.mine .message-media img,
+.bubble.mine .message-media video {
+  border-color: rgba(10, 10, 15, 0.24);
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1337,6 +1488,11 @@ label {
     order: 3;
   }
 
+  .top-search {
+    grid-column: 1 / -1;
+    order: 4;
+  }
+
   .content-layout,
   .inbox-layout,
   .live-grid,
@@ -1357,7 +1513,7 @@ label {
 
 @media (max-width: 720px) {
   .app-shell {
-    padding: 8.6rem 0.75rem 1rem;
+    padding: 11.6rem 0.75rem 1rem;
   }
 
   .topbar {
@@ -1370,6 +1526,23 @@ label {
 
   .account-tools .ghost-action {
     display: none;
+  }
+
+  .top-search {
+    grid-template-columns: 1fr;
+  }
+
+  .top-search button {
+    width: 100%;
+  }
+
+  .compact-form,
+  .user-card {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card-actions {
+    justify-content: flex-start;
   }
 
   .hero,
@@ -1439,6 +1612,14 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .media-message-form {
+    grid-template-columns: 1fr;
+  }
+
+  .attach-button {
+    width: 100%;
+  }
+
   .chat-window,
   .dm-window {
     min-height: 350px;
@@ -1491,7 +1672,7 @@ var supabase=function(e){function t(e,t){var r={};for(var s in e)Object.prototyp
         </section>
       </main>
     </div>
-    <script>﻿const version = "20260526-auth-input-fix";
+    <script>﻿const version = "20260527-auth-timeout-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -1502,6 +1683,7 @@ const socialProviders = [
 ];
 const bootWarnings = [];
 const accountServiceWarning = "Account services are temporarily unavailable. Please refresh in a moment.";
+const requestTimeoutMs = 9000;
 const supabaseRetryLimit = 20;
 const rooms = [
   { id: "anime", name: "Anime", topic: "Watch parties, openings, episode talk" },
@@ -1509,6 +1691,12 @@ const rooms = [
   { id: "manga", name: "Manga", topic: "Chapters, panels, collecting, theories" },
   { id: "general", name: "General", topic: "Community lounge and introductions" },
   { id: "nakaru-san", name: "Nakaru-San", topic: "Platform updates and creator rooms" }
+];
+
+const privateRooms = [
+  { id: "private-crew-night", name: "Crew Night", topic: "Invite-only watch list planning and private fandom talk" },
+  { id: "private-raid-party", name: "Raid Party", topic: "Private gaming voice room and media drops" },
+  { id: "private-creator-den", name: "Creator Den", topic: "Artwork, clips, edits, and project feedback" }
 ];
 
 const kanjiRainItems = [
@@ -1570,8 +1758,10 @@ const state = {
   deviceVideoComposerOpen: true,
   lastDeviceVideoPost: null,
   activeRoom: "anime",
+  activePrivateRoom: "private-crew-night",
   roomText: "",
   roomStatus: "",
+  privateRoomStatus: "",
   roomMessages: readLocal("nakaru-room-messages", {
     anime: [
       { id: "room-1", author: "Ami Arc", text: "What is everyone watching tonight?", created_at: new Date().toISOString() },
@@ -1597,6 +1787,7 @@ const state = {
   dmMessages: readLocal("nakaru-direct-messages", []),
   dmStatus: "",
   publicProfiles: [],
+  topSearch: "",
   socialSearch: "",
   searchResults: [],
   searchStatus: "",
@@ -1627,9 +1818,13 @@ const state = {
   callStarting: false,
   inCall: false,
   liveRooms: [],
+  liveRoomSearch: "",
+  liveRoomSearchResults: [],
   activeLiveRoom: null,
   liveRoomInvites: [],
-  liveRoomStatus: ""
+  liveRoomStatus: "",
+  liveRoomCreating: false,
+  liveRoomJoining: ""
 };
 state.savedProfile = { ...state.profile };
 
@@ -1743,6 +1938,7 @@ function resetPrivateState() {
   state.calls = [];
   state.activeCallId = "";
   state.liveRooms = [];
+  state.liveRoomSearchResults = [];
   state.activeLiveRoom = null;
   state.liveRoomInvites = [];
 }
@@ -1793,6 +1989,14 @@ function readLocal(key, fallback) {
 
 function writeLocal(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function withTimeout(promise, label = "Request", timeoutMs = requestTimeoutMs) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error(`${label} timed out. Please try again.`)), timeoutMs);
+  });
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => window.clearTimeout(timer));
 }
 
 function toggleSidebar(force) {
@@ -1944,7 +2148,7 @@ async function init() {
 
 async function initSupabaseSession() {
   try {
-    const { data, error } = await supabaseClient.auth.getSession();
+    const { data, error } = await withTimeout(supabaseClient.auth.getSession(), "Session check");
     if (error) throw error;
     state.user = data.session?.user || null;
     authSubscription?.unsubscribe?.();
@@ -1959,7 +2163,7 @@ async function initSupabaseSession() {
     console.error("Supabase session load failed", error);
     clearStoredSession();
     try {
-      await supabaseClient.auth.signOut({ scope: "local" });
+      await withTimeout(supabaseClient.auth.signOut({ scope: "local" }), "Local session clear", 3500);
     } catch (signOutError) {
       console.warn("Could not clear local Supabase session", signOutError);
     }
@@ -1968,13 +2172,15 @@ async function initSupabaseSession() {
 }
 
 async function afterAuthChange() {
-  await loadPublicProfiles();
-  await loadPosts();
-  await loadRoomMessages(state.activeRoom);
+  await Promise.allSettled([
+    withTimeout(loadPublicProfiles(), "Public profiles load", 5000),
+    withTimeout(loadPosts(), "Feed load", 5000),
+    withTimeout(loadRoomMessages(state.activeRoom), "Room messages load", 5000)
+  ]);
   if (state.user) {
     try {
-      await loadProfile();
-      await loadSocialData();
+      await withTimeout(loadProfile(), "Profile load", 6000);
+      await withTimeout(loadSocialData(), "Social data load", 6000);
       subscribeSocialRealtime();
     } catch (error) {
       console.error("Data load failed", error);
@@ -2010,7 +2216,11 @@ async function loadProfile() {
 
 async function ensureProfileRecord(usernameHint = "") {
   if (!state.user || !supabaseClient) return;
-  const { data, error } = await supabaseClient.from("profiles").select("id").eq("id", state.user.id).maybeSingle();
+  const { data, error } = await withTimeout(
+    supabaseClient.from("profiles").select("id").eq("id", state.user.id).maybeSingle(),
+    "Profile check",
+    6000
+  );
   if (error) {
     console.error("Profile existence check failed", error);
     return;
@@ -2030,15 +2240,15 @@ async function ensureProfileRecord(usernameHint = "") {
   };
   if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
 
-  let { error: upsertError } = await supabaseClient.from("profiles").upsert(row, { onConflict: "id" });
+  let { error: upsertError } = await withTimeout(supabaseClient.from("profiles").upsert(row, { onConflict: "id" }), "Profile creation", 7000);
   if (upsertError && isMissingColumnError(upsertError, "banner_url")) {
     const { banner_url, ...rowWithoutBanner } = row;
-    ({ error: upsertError } = await supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }));
+    ({ error: upsertError } = await withTimeout(supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }), "Profile creation retry", 7000));
   }
   if (upsertError && String(upsertError.message || "").toLowerCase().includes("duplicate")) {
     row.username = `${row.username}_${suffix}`.slice(0, 31);
     const { banner_url, ...retryRow } = row;
-    ({ error: upsertError } = await supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }));
+    ({ error: upsertError } = await withTimeout(supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }), "Profile username retry", 7000));
   }
   if (upsertError) {
     console.error("Profile creation failed", upsertError);
@@ -2080,12 +2290,20 @@ async function loadPosts() {
 
 async function loadRoomMessages(roomId = state.activeRoom) {
   if (!supabaseClient) return;
-  const { data, error } = await supabaseClient
+  let { data, error } = await supabaseClient
     .from("room_messages")
-    .select("id,room_id,user_id,author,text,created_at")
+    .select("id,room_id,user_id,author,text,media_url,media_type,media_name,created_at")
     .eq("room_id", roomId)
     .order("created_at", { ascending: true })
     .limit(100);
+  if (error && (isMissingColumnError(error, "media_url") || isMissingColumnError(error, "media_type") || isMissingColumnError(error, "media_name"))) {
+    ({ data, error } = await supabaseClient
+      .from("room_messages")
+      .select("id,room_id,user_id,author,text,created_at")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true })
+      .limit(100));
+  }
   if (error) {
     console.error("Room message load failed", error);
     state.roomStatus = "Chat is temporarily unavailable. Please try again soon.";
@@ -2105,12 +2323,20 @@ async function loadDirectMessages() {
   try {
     const conversationId = await ensureConversation(state.activeDmRecipient);
     if (!conversationId) return;
-    const { data, error } = await supabaseClient
+    let { data, error } = await supabaseClient
       .from("messages")
-      .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
+      .select("id,conversation_id,sender_id,receiver_id,body,media_url,media_type,media_name,read,created_at")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
       .limit(150);
+    if (error && (isMissingColumnError(error, "media_url") || isMissingColumnError(error, "media_type") || isMissingColumnError(error, "media_name"))) {
+      ({ data, error } = await supabaseClient
+        .from("messages")
+        .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
+        .limit(150));
+    }
     if (error) throw error;
     state.dmMessages = (data || []).map((message) => ({ ...message, text: message.body }));
     state.dmStatus = "";
@@ -2122,12 +2348,20 @@ async function loadDirectMessages() {
 
 async function loadDirectMessagesFallback() {
   const query = `and(sender_id.eq.${state.user.id},recipient_id.eq.${state.activeDmRecipient}),and(sender_id.eq.${state.activeDmRecipient},recipient_id.eq.${state.user.id})`;
-  const { data, error } = await supabaseClient
+  let { data, error } = await supabaseClient
     .from("direct_messages")
-    .select("id,sender_id,recipient_id,text,created_at")
+    .select("id,sender_id,recipient_id,text,media_url,media_type,media_name,created_at")
     .or(query)
     .order("created_at", { ascending: true })
     .limit(100);
+  if (error && (isMissingColumnError(error, "media_url") || isMissingColumnError(error, "media_type") || isMissingColumnError(error, "media_name"))) {
+    ({ data, error } = await supabaseClient
+      .from("direct_messages")
+      .select("id,sender_id,recipient_id,text,created_at")
+      .or(query)
+      .order("created_at", { ascending: true })
+      .limit(100));
+  }
   if (error) {
     console.error("Direct message fallback failed", error);
     state.dmStatus = "Messaging is temporarily unavailable. Please try again soon.";
@@ -2204,15 +2438,18 @@ async function loadLiveRooms() {
   const { data, error } = await supabaseClient
     .from("live_rooms")
     .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
-    .eq("host_id", state.user.id)
     .eq("is_active", true)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(50);
   if (error) {
     console.error("Live room load failed", error);
     return;
   }
   state.liveRooms = data || [];
+  const query = state.liveRoomSearch.trim().toLowerCase();
+  state.liveRoomSearchResults = query
+    ? state.liveRooms.filter((room) => `${room.room_name || ""} ${profileName(profileById(room.host_id))}`.toLowerCase().includes(query))
+    : state.liveRooms;
   if (!state.activeLiveRoom && state.liveRooms[0]) state.activeLiveRoom = state.liveRooms[0];
 }
 
@@ -2285,6 +2522,10 @@ function subscribeSocialRealtime() {
       await loadCalls();
       render();
     })
+    .on("postgres_changes", { event: "*", schema: "public", table: "live_rooms" }, async () => {
+      await loadLiveRooms();
+      render();
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "live_room_invites" }, async (payload) => {
       const row = payload.new || payload.old || {};
       if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
@@ -2308,6 +2549,8 @@ function isProtectedPage(page) {
 
 function setPage(page) {
   if (page === "golive") page = "live";
+  if (page === "requests") page = "friend-requests";
+  if (page === "messaging") page = "messages";
   if (isProtectedPage(page) && !state.user) {
     state.page = "edit-profile";
     state.sidebarOpen = false;
@@ -2320,11 +2563,12 @@ function setPage(page) {
   state.sidebarOpen = false;
   if (page === "edit-profile" && state.user) state.profileEditing = true;
   if (page === "public-rooms") loadRoomMessages(state.activeRoom).finally(render);
+  if (page === "private-rooms") loadRoomMessages(state.activePrivateRoom).finally(render);
   if (["search", "friends", "friend-requests", "messages", "calls", "live", "inbox"].includes(page)) {
-    loadSocialData().finally(render);
+    withTimeout(loadSocialData(), "Social data load", 6000).finally(render);
   }
   if (page === "messages" || page === "inbox") {
-    loadPublicProfiles()
+    withTimeout(loadPublicProfiles(), "Public profiles load", 5000)
       .then(loadDirectMessages)
       .finally(render);
   }
@@ -2370,11 +2614,11 @@ async function resendVerificationEmail(event) {
   state.authStatus = "";
   render();
   try {
-    const { error } = await supabaseClient.auth.resend({
+    const { error } = await withTimeout(supabaseClient.auth.resend({
       type: "signup",
       email,
       options: { emailRedirectTo: redirectUrl() }
-    });
+    }), "Confirmation email", 8000);
     if (error) throw error;
     rememberPendingVerificationEmail(email);
     state.authStatus = "Confirmation email sent. Open the link in your email, then log in.";
@@ -2424,14 +2668,14 @@ async function submitAuth(event) {
       return;
     }
     if (state.authMode === "signup") {
-      const { data, error } = await supabaseClient.auth.signUp({
+      const { data, error } = await withTimeout(supabaseClient.auth.signUp({
         email,
         password,
         options: {
           data: { username },
           emailRedirectTo: redirectUrl()
         }
-      });
+      }), "Signup", 9000);
       if (error) throw error;
       if (!data?.session) {
         state.authMode = "signin";
@@ -2441,17 +2685,29 @@ async function submitAuth(event) {
       }
       state.user = data.session.user || data.user;
       rememberPendingVerificationEmail("");
-      await ensureProfileRecord(username);
+      try {
+        await ensureProfileRecord(username);
+      } catch (profileError) {
+        console.error("Profile setup after signup failed", profileError);
+      }
       state.authStatus = "Account created and signed in.";
     } else {
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      const { data, error } = await withTimeout(supabaseClient.auth.signInWithPassword({ email, password }), "Login", 9000);
       if (error) throw error;
       state.user = data.session?.user || data.user;
       rememberPendingVerificationEmail("");
-      await ensureProfileRecord();
+      try {
+        await ensureProfileRecord();
+      } catch (profileError) {
+        console.error("Profile setup after login failed", profileError);
+      }
       state.authStatus = "Signed in successfully.";
     }
-    await afterAuthChange();
+    try {
+      await withTimeout(afterAuthChange(), "Account refresh", 9000);
+    } catch (refreshError) {
+      console.error("Account refresh after auth timed out", refreshError);
+    }
     setPage("profile");
   } catch (error) {
     console.error("Auth failed", error);
@@ -2459,6 +2715,7 @@ async function submitAuth(event) {
     render();
   } finally {
     state.authLoading = false;
+    state.socialLoading = "";
     render();
   }
 }
@@ -2525,6 +2782,65 @@ function fileToDataUrl(file) {
   });
 }
 
+function mediaKindFromFile(file) {
+  if (!file) return "";
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  return "";
+}
+
+function mediaLabel(kind = "") {
+  return kind === "video" ? "Shared a video." : kind === "image" ? "Shared an image." : "Shared media.";
+}
+
+async function uploadChatMedia(file, folder = "messages") {
+  if (!file) return { media_url: "", media_type: "", media_name: "" };
+  const mediaType = mediaKindFromFile(file);
+  if (!mediaType) throw new Error("Unsupported media type");
+  const maxBytes = mediaType === "video" ? 120 * 1024 * 1024 : 15 * 1024 * 1024;
+  if (file.size > maxBytes) throw new Error(mediaType === "video" ? "Video file is too large" : "Image file is too large");
+
+  if (!supabaseClient) {
+    return {
+      media_url: await fileToDataUrl(file),
+      media_type: mediaType,
+      media_name: file.name || mediaLabel(mediaType)
+    };
+  }
+
+  const extension = (file.name.split(".").pop() || (mediaType === "video" ? "mp4" : "jpg")).replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const safeName = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 42) || `nakaru-${mediaType}`;
+  const path = `${folder}/${state.user.id}/${Date.now()}-${safeName}.${extension}`;
+  const { error: uploadError } = await supabaseClient.storage.from("nakaru-media").upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: false
+  });
+  if (uploadError) throw uploadError;
+  const { data } = supabaseClient.storage.from("nakaru-media").getPublicUrl(path);
+  return {
+    media_url: data.publicUrl,
+    media_type: mediaType,
+    media_name: file.name || mediaLabel(mediaType)
+  };
+}
+
+function messageBody(message = {}) {
+  return message.text || message.body || "";
+}
+
+function renderMessageMedia(message = {}) {
+  if (!message.media_url) return "";
+  const label = escapeHtml(message.media_name || mediaLabel(message.media_type));
+  if (message.media_type === "image") {
+    return `<figure class="message-media"><img src="${escapeHtml(message.media_url)}" alt="${label}" loading="lazy" /></figure>`;
+  }
+  if (message.media_type === "video") {
+    return `<figure class="message-media"><video src="${escapeHtml(message.media_url)}" controls playsinline preload="metadata"></video></figure>`;
+  }
+  return `<a class="message-attachment" href="${escapeHtml(message.media_url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+}
+
 async function setProfileImage(field, input) {
   const file = input.files?.[0];
   if (!file) return;
@@ -2551,15 +2867,15 @@ async function saveProfile() {
   if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
   try {
     if (supabaseClient) {
-      let { error } = await supabaseClient.from("profiles").upsert(row, { onConflict: "id" });
+      let { error } = await withTimeout(supabaseClient.from("profiles").upsert(row, { onConflict: "id" }), "Profile save", 9000);
       if (error && isMissingColumnError(error, "banner_url")) {
         const { banner_url, ...rowWithoutBanner } = row;
-        ({ error } = await supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }));
+        ({ error } = await withTimeout(supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }), "Profile save retry", 9000));
       }
       if (error && String(error.message || "").toLowerCase().includes("duplicate")) {
         row.username = `${row.username}_${suffix}`.slice(0, 31);
         const { banner_url, ...retryRow } = row;
-        ({ error } = await supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }));
+        ({ error } = await withTimeout(supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }), "Profile username retry", 9000));
       }
       if (error) throw error;
     } else {
@@ -2610,6 +2926,54 @@ async function searchUsers(event) {
     .slice(0, 20);
   state.searchStatus = state.searchResults.length ? "" : "No users found yet.";
   render();
+}
+
+async function topSearch(event) {
+  event?.preventDefault();
+  const value = String(new FormData(event.currentTarget).get("topSearch") || "").trim();
+  if (!value) return;
+  state.topSearch = value;
+  state.socialSearch = value;
+  setPage("search");
+  await searchUsers();
+}
+
+function openReferenceSearch(kind = "images", value = state.socialSearch || state.topSearch) {
+  const query = String(value || "").trim();
+  if (!query) {
+    state.searchStatus = "Type something to search first.";
+    render();
+    return;
+  }
+  const safeQuery = encodeURIComponent(`${query} anime reference`);
+  const url = kind === "youtube"
+    ? `https://www.youtube.com/results?search_query=${safeQuery}`
+    : `https://www.google.com/search?tbm=isch&q=${safeQuery}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function actionForProfile(profile) {
+  const status = friendStatus(profile.id);
+  if (status === "friend") return `<button class="primary-action" onclick="messageFriend('${profile.id}')" type="button">Message</button>`;
+  if (status === "pending-in") return `<button class="primary-action" onclick="setPage('friend-requests')" type="button">Respond</button>`;
+  if (status === "pending-out") return `<button class="ghost-action" type="button" disabled>Request Sent</button>`;
+  if (status === "blocked") return `<button class="ghost-action" type="button" disabled>Blocked</button>`;
+  return `<button class="ghost-action" onclick="sendFriendRequest('${profile.id}')" type="button">Add Friend</button>`;
+}
+
+function userCard(profile, extra = "") {
+  return `
+    <article class="user-card">
+      ${avatar(profile)}
+      <div>
+        <strong>${escapeHtml(profile.display_name || profile.username || "Nakaru Member")}</strong>
+        <span>@${escapeHtml(profile.username || "member")}</span>
+      </div>
+      <div class="user-card-actions">
+        ${extra || actionForProfile(profile)}
+      </div>
+    </article>
+  `;
 }
 
 async function sendFriendRequest(receiverId) {
@@ -2831,43 +3195,69 @@ async function savePost(postInput) {
   }
 }
 
-async function sendRoomMessage(event) {
+async function sendRoomMessage(event, roomId = state.activeRoom, statusField = "roomStatus") {
   event.preventDefault();
   const input = event.currentTarget.querySelector("input");
-  const text = input.value.trim();
-  if (!text) return;
+  const fileInput = event.currentTarget.querySelector("input[type='file']");
+  const text = input?.value.trim() || "";
+  const file = fileInput?.files?.[0] || null;
+  if (!text && !file) return;
   if (!state.user) {
-    state.roomStatus = "Sign in to chat in live rooms.";
+    state[statusField] = "Sign in to chat in live rooms.";
     render();
     return;
   }
+  let media = { media_url: "", media_type: "", media_name: "" };
+  if (file) {
+    try {
+      media = await uploadChatMedia(file, `rooms/${roomId}`);
+    } catch (error) {
+      console.error("Room media upload failed", error);
+      state[statusField] = "That image or video could not be attached. Please try a smaller file.";
+      render();
+      return;
+    }
+  }
   const message = {
     id: crypto.randomUUID(),
-    room_id: state.activeRoom,
+    room_id: roomId,
     user_id: state.user.id,
     author: state.profile.display_name || "Nakaru Member",
-    text,
+    text: text || mediaLabel(media.media_type),
+    ...media,
     created_at: new Date().toISOString()
   };
   try {
     if (supabaseClient) {
-      const { data, error } = await supabaseClient.from("room_messages").insert({
+      let { data, error } = await supabaseClient.from("room_messages").insert({
         room_id: message.room_id,
         user_id: message.user_id,
         author: message.author,
-        text: message.text
-      }).select("id,room_id,user_id,author,text,created_at").single();
+        text: message.text,
+        media_url: message.media_url || null,
+        media_type: message.media_type || null,
+        media_name: message.media_name || null
+      }).select("id,room_id,user_id,author,text,media_url,media_type,media_name,created_at").single();
+      if (error && (isMissingColumnError(error, "media_url") || isMissingColumnError(error, "media_type") || isMissingColumnError(error, "media_name"))) {
+        ({ data, error } = await supabaseClient.from("room_messages").insert({
+          room_id: message.room_id,
+          user_id: message.user_id,
+          author: message.author,
+          text: message.text
+        }).select("id,room_id,user_id,author,text,created_at").single());
+      }
       if (error) throw error;
-      state.roomMessages[state.activeRoom] = [...(state.roomMessages[state.activeRoom] || []), data];
+      state.roomMessages[roomId] = [...(state.roomMessages[roomId] || []), data];
     } else {
-      state.roomMessages[state.activeRoom] = [...(state.roomMessages[state.activeRoom] || []), message];
+      state.roomMessages[roomId] = [...(state.roomMessages[roomId] || []), message];
       writeLocal("nakaru-room-messages", state.roomMessages);
     }
-    state.roomStatus = "";
-    input.value = "";
+    state[statusField] = "";
+    if (input) input.value = "";
+    if (fileInput) fileInput.value = "";
   } catch (error) {
     console.error("Room message send failed", error);
-    state.roomStatus = "Chat is temporarily unavailable. Please try again soon.";
+    state[statusField] = "Chat is temporarily unavailable. Please try again soon.";
   } finally {
     render();
   }
@@ -2883,8 +3273,10 @@ async function setDmRecipient(profileId) {
 async function sendDm(event) {
   event.preventDefault();
   const input = event.currentTarget.querySelector("input");
-  const text = input.value.trim();
-  if (!text) return;
+  const fileInput = event.currentTarget.querySelector("input[type='file']");
+  const text = input?.value.trim() || "";
+  const file = fileInput?.files?.[0] || null;
+  if (!text && !file) return;
   if (!state.user) {
     state.dmStatus = "Sign in to send direct messages.";
     render();
@@ -2895,31 +3287,75 @@ async function sendDm(event) {
     render();
     return;
   }
+  let media = { media_url: "", media_type: "", media_name: "" };
+  if (file) {
+    try {
+      media = await uploadChatMedia(file, `direct-messages/${state.activeDmRecipient || "demo"}`);
+    } catch (error) {
+      console.error("DM media upload failed", error);
+      state.dmStatus = "That image or video could not be attached. Please try a smaller file.";
+      render();
+      return;
+    }
+  }
+  const body = text || mediaLabel(media.media_type);
   if (state.activeDmRecipient && supabaseClient) {
     try {
       const conversationId = await ensureConversation(state.activeDmRecipient);
-      const { data, error } = await supabaseClient
+      let { data, error } = await supabaseClient
         .from("messages")
-        .insert({ conversation_id: conversationId, sender_id: state.user.id, receiver_id: state.activeDmRecipient, body: text, read: false })
-        .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
+        .insert({
+          conversation_id: conversationId,
+          sender_id: state.user.id,
+          receiver_id: state.activeDmRecipient,
+          body,
+          media_url: media.media_url || null,
+          media_type: media.media_type || null,
+          media_name: media.media_name || null,
+          read: false
+        })
+        .select("id,conversation_id,sender_id,receiver_id,body,media_url,media_type,media_name,read,created_at")
         .single();
+      if (error && (isMissingColumnError(error, "media_url") || isMissingColumnError(error, "media_type") || isMissingColumnError(error, "media_name"))) {
+        ({ data, error } = await supabaseClient
+          .from("messages")
+          .insert({ conversation_id: conversationId, sender_id: state.user.id, receiver_id: state.activeDmRecipient, body, read: false })
+          .select("id,conversation_id,sender_id,receiver_id,body,read,created_at")
+          .single());
+      }
       if (error) throw error;
       state.dmMessages = [...state.dmMessages, { ...data, text: data.body }];
-      input.value = "";
+      if (input) input.value = "";
+      if (fileInput) fileInput.value = "";
       state.dmStatus = "";
       render();
       return;
     } catch (error) {
       console.error("Conversation message send failed", error);
       try {
-        const { data, error: fallbackError } = await supabaseClient
+        let { data, error: fallbackError } = await supabaseClient
           .from("direct_messages")
-          .insert({ sender_id: state.user.id, recipient_id: state.activeDmRecipient, text })
-          .select("id,sender_id,recipient_id,text,created_at")
+          .insert({
+            sender_id: state.user.id,
+            recipient_id: state.activeDmRecipient,
+            text: body,
+            media_url: media.media_url || null,
+            media_type: media.media_type || null,
+            media_name: media.media_name || null
+          })
+          .select("id,sender_id,recipient_id,text,media_url,media_type,media_name,created_at")
           .single();
+        if (fallbackError && (isMissingColumnError(fallbackError, "media_url") || isMissingColumnError(fallbackError, "media_type") || isMissingColumnError(fallbackError, "media_name"))) {
+          ({ data, error: fallbackError } = await supabaseClient
+            .from("direct_messages")
+            .insert({ sender_id: state.user.id, recipient_id: state.activeDmRecipient, text: body })
+            .select("id,sender_id,recipient_id,text,created_at")
+            .single());
+        }
         if (fallbackError) throw fallbackError;
         state.dmMessages = [...state.dmMessages, data];
-        input.value = "";
+        if (input) input.value = "";
+        if (fileInput) fileInput.value = "";
         state.dmStatus = "";
         render();
         return;
@@ -2933,10 +3369,11 @@ async function sendDm(event) {
   }
   state.threads = state.threads.map((thread) => {
     if (thread.id !== state.activeThread) return thread;
-    return { ...thread, preview: text, messages: [...thread.messages, { id: crypto.randomUUID(), fromMe: true, text }] };
+    return { ...thread, preview: body, messages: [...thread.messages, { id: crypto.randomUUID(), fromMe: true, text: body, ...media }] };
   });
   writeLocal("nakaru-dm-threads", state.threads);
-  input.value = "";
+  if (input) input.value = "";
+  if (fileInput) fileInput.value = "";
   render();
 }
 
@@ -3013,30 +3450,84 @@ async function endActiveCall() {
 
 async function createLiveRoom(event) {
   event?.preventDefault();
+  if (state.liveRoomCreating) return;
   if (!state.user) {
     state.liveRoomStatus = "Sign in to create a live room.";
     render();
     return;
   }
+  if (!ensureSupabaseClient()) {
+    state.liveRoomStatus = "Live rooms need account services online.";
+    render();
+    return;
+  }
   const form = event ? new FormData(event.currentTarget) : null;
   const roomName = String(form?.get("roomName") || state.callRoom || "Nakaru Live Room").trim();
+  state.liveRoomCreating = true;
+  state.liveRoomStatus = "Creating live room...";
+  render();
   try {
-    const { data, error } = await supabaseClient
+    const { data, error } = await withTimeout(supabaseClient
       .from("live_rooms")
       .insert({ host_id: state.user.id, room_name: roomName, room_url: `${redirectUrl()}#live`, is_active: true })
       .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
-      .single();
+      .single(), "Live room create", 8000);
     if (error) throw error;
     state.activeLiveRoom = data;
     state.callRoom = data.id;
-    state.liveRoomStatus = "Live room created. Invite friends or start video.";
+    state.liveRoomStatus = "Live room is live and searchable. Invite friends or start video.";
     await loadLiveRooms();
   } catch (error) {
     console.error("Live room create failed", error);
     state.liveRoomStatus = "Live room could not be created.";
   } finally {
+    state.liveRoomCreating = false;
     render();
   }
+}
+
+async function searchLiveRooms(event) {
+  event?.preventDefault();
+  const value = event ? String(new FormData(event.currentTarget).get("liveRoomSearch") || "") : state.liveRoomSearch;
+  state.liveRoomSearch = value.trim();
+  await loadLiveRooms();
+  render();
+}
+
+async function joinLiveRoom(roomId, mode = "video") {
+  const room = state.liveRooms.find((item) => item.id === roomId) || state.liveRoomSearchResults.find((item) => item.id === roomId);
+  if (!room) {
+    state.liveRoomStatus = "That live room is no longer available.";
+    render();
+    return;
+  }
+  state.activeLiveRoom = room;
+  state.callRoom = room.id;
+  state.liveRoomJoining = room.id;
+  state.liveRoomStatus = `Joining ${room.room_name || "live room"} over your internet connection...`;
+  render();
+  try {
+    await joinCall(mode);
+  } finally {
+    state.liveRoomJoining = "";
+    render();
+  }
+}
+
+async function endLiveRoom(roomId = state.activeLiveRoom?.id) {
+  await stopCamera(false);
+  if (roomId && supabaseClient) {
+    const room = state.liveRooms.find((item) => item.id === roomId) || state.activeLiveRoom;
+    if (room?.host_id === state.user?.id) {
+      const { error } = await supabaseClient.from("live_rooms").update({ is_active: false, ended_at: new Date().toISOString() }).eq("id", roomId);
+      if (error) console.error("Live room end failed", error);
+    }
+  }
+  state.activeLiveRoom = null;
+  state.callRoom = "nakaru-lounge";
+  state.liveRoomStatus = "Live room ended.";
+  await loadLiveRooms();
+  render();
 }
 
 async function inviteFriendToLiveRoom(friendId) {
@@ -3211,6 +3702,10 @@ async function connectCall(mode = "video", isCaller = false) {
 }
 
 async function startCall(mode = "video") {
+  if (state.page === "live" && !state.activeLiveRoom) {
+    await createLiveRoom();
+    if (!state.activeLiveRoom) return;
+  }
   await connectCall(mode, true);
 }
 
@@ -3234,7 +3729,13 @@ async function stopCamera(shouldRender = true) {
   state.stream?.getTracks().forEach((track) => track.stop());
   state.remoteStream?.getTracks().forEach((track) => track.stop());
   state.peer?.close();
-  if (state.callChannel && supabaseClient) await supabaseClient.removeChannel(state.callChannel);
+  if (state.callChannel && supabaseClient) {
+    try {
+      await withTimeout(supabaseClient.removeChannel(state.callChannel), "Call cleanup", 2500);
+    } catch (error) {
+      console.warn("Call cleanup timed out", error);
+    }
+  }
   state.stream = null;
   state.remoteStream = null;
   state.peer = null;
@@ -3249,12 +3750,12 @@ async function signOut() {
   state.authLoading = true;
   render();
   try {
-    await stopCamera(false);
+    await withTimeout(stopCamera(false), "Camera cleanup", 3000);
     if (ensureSupabaseClient()) {
-      const { error } = await supabaseClient.auth.signOut({ scope: "global" });
+      const { error } = await withTimeout(supabaseClient.auth.signOut({ scope: "global" }), "Sign out", 6000);
       if (error) {
         console.error("Global sign out failed", error);
-        await supabaseClient.auth.signOut({ scope: "local" });
+        await withTimeout(supabaseClient.auth.signOut({ scope: "local" }), "Local sign out", 3500);
       }
     }
   } catch (error) {
@@ -3370,6 +3871,48 @@ function renderAboutSection() {
   `;
 }
 
+function renderChatLine(message = {}) {
+  return `
+    <div class="chat-line">
+      ${avatar({ display_name: message.author })}
+      <div>
+        <strong>${escapeHtml(message.author || "Nakaru Member")}</strong>
+        ${messageBody(message) ? `<p>${escapeHtml(messageBody(message))}</p>` : ""}
+        ${renderMessageMedia(message)}
+      </div>
+    </div>
+  `;
+}
+
+function renderDmBubble(message = {}) {
+  const mine = message.sender_id === state.user?.id || message.fromMe;
+  return `
+    <div class="bubble ${mine ? "mine" : ""}">
+      ${messageBody(message) ? `<p>${escapeHtml(messageBody(message))}</p>` : ""}
+      ${renderMessageMedia(message)}
+    </div>
+  `;
+}
+
+function liveRoomCard(room = {}) {
+  const host = profileById(room.host_id);
+  const isHost = room.host_id === state.user?.id;
+  return `
+    <article class="room-card live-room-card">
+      <div>
+        <h3>${escapeHtml(room.room_name || "Nakaru Live Room")}</h3>
+        <p>Hosted by ${escapeHtml(profileName(host))}</p>
+        <span>${isHost ? "Your live room" : "Open live room"} · ${formatTime(room.created_at)}</span>
+      </div>
+      <div class="user-card-actions">
+        <button class="primary-action" ${state.liveRoomJoining === room.id ? "disabled" : ""} onclick="joinLiveRoom('${room.id}', 'video')" type="button">${state.liveRoomJoining === room.id ? "Joining..." : "Join Video"}</button>
+        <button class="ghost-action" ${state.liveRoomJoining === room.id ? "disabled" : ""} onclick="joinLiveRoom('${room.id}', 'audio')" type="button">Join Audio</button>
+        ${isHost ? `<button class="ghost-action" onclick="endLiveRoom('${room.id}')" type="button">End Room</button>` : ""}
+      </div>
+    </article>
+  `;
+}
+
 function renderPage() {
   const profilePosts = state.posts.filter((post) => post.user_id === state.user?.id);
   const activeThread = state.threads.find((thread) => thread.id === state.activeThread) || state.threads[0];
@@ -3390,8 +3933,8 @@ function renderPage() {
       <section class="panel">
         <div class="panel-title"><span class="eyebrow">Public chatrooms</span><h2>${escapeHtml(activeRoom.name)} Room</h2></div>
         <div class="room-tabs">${rooms.map((room) => `<button class="${room.id === state.activeRoom ? "active" : ""}" onclick="state.activeRoom='${room.id}'; loadRoomMessages('${room.id}').finally(render)" type="button">${escapeHtml(room.name)}</button>`).join("")}</div>
-        <div class="chat-window">${(state.roomMessages[state.activeRoom] || []).map((message) => `<div class="chat-line">${avatar({ display_name: message.author })}<div><strong>${escapeHtml(message.author)}</strong><p>${escapeHtml(message.text)}</p></div></div>`).join("")}</div>
-        <form class="message-form" onsubmit="sendRoomMessage(event)"><input placeholder="Message ${escapeHtml(activeRoom.name)}" /><button class="primary-action" type="submit">Send</button></form>
+        <div class="chat-window">${(state.roomMessages[state.activeRoom] || []).map(renderChatLine).join("")}</div>
+        <form class="message-form media-message-form" onsubmit="sendRoomMessage(event)"><input placeholder="Message ${escapeHtml(activeRoom.name)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>
         ${state.roomStatus ? `<p class="status-text">${escapeHtml(state.roomStatus)}</p>` : ""}
       </section>
       <aside class="panel sidebar-panel"><h3>Room topic</h3><p>${escapeHtml(activeRoom.topic)}</p></aside>
@@ -3399,6 +3942,27 @@ function renderPage() {
   `;
   if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div><div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
   if (state.page === "edit-profile") return `<main class="page-grid">${state.user ? profileCard(state.profileEditing) : authView()}</main>`;
+  if (state.page === "search") return `
+    <main class="content-layout">
+      <section class="panel">
+        <div class="panel-title"><span class="eyebrow">Search users</span><h2>Find members and start messages</h2></div>
+        <form class="form-grid compact-form" onsubmit="searchUsers(event)">
+          <label>Username or display name<input name="search" value="${escapeHtml(state.socialSearch)}" placeholder="Search Nakaru-San users" /></label>
+          <button class="primary-action" type="submit">Search Users</button>
+        </form>
+        ${state.searchStatus ? `<p class="status-text">${escapeHtml(state.searchStatus)}</p>` : ""}
+        <div class="user-card-list">${state.searchResults.length ? state.searchResults.map((profile) => userCard(profile)).join("") : `<p class="empty-state">Search a username or display name to find people to message.</p>`}</div>
+      </section>
+      <aside class="panel sidebar-panel">
+        <div class="panel-title"><span class="eyebrow">Reference search</span><h2>Anime images and videos</h2></div>
+        <p class="muted">These buttons open public Google Images or YouTube search results in a new tab. Nakaru-San does not copy or host those reference images.</p>
+        <div class="reference-actions">
+          <button class="ghost-action" onclick="openReferenceSearch('images')" type="button">Open Google Images</button>
+          <button class="ghost-action" onclick="openReferenceSearch('youtube')" type="button">Open YouTube Search</button>
+        </div>
+      </aside>
+    </main>
+  `;
   if (state.page === "video") return `
     <main class="video-post-layout">
       <section class="panel video-post-panel"><div class="panel-title"><span class="eyebrow">Video link post</span><h2>Post a YouTube link</h2></div>
@@ -3411,28 +3975,105 @@ function renderPage() {
       </section>
     </main>
   `;
-  if (state.page === "golive" || state.page === "live") return `
-    <main class="content-layout">
-      <section class="panel live-panel">
-        <div class="panel-title"><span class="eyebrow">GoLive</span><h2>Livestream and call room</h2></div>
-        <label class="call-room-label">Room name<input value="${escapeHtml(state.callRoom)}" oninput="state.callRoom=this.value" placeholder="nakaru-lounge" /></label>
-        <div class="live-grid">
-          <div class="live-stage">${state.stream ? `<video id="live-video" autoplay muted playsinline></video>` : `<div><strong>Your camera preview appears here.</strong><span>Start or join a room to connect over Wi-Fi/WebRTC.</span></div>`}</div>
-          <div class="live-stage remote-stage">${state.remoteStream ? `<video id="remote-video" autoplay playsinline></video>` : `<div><strong>Remote user</strong><span>The other user appears here after joining the same room.</span></div>`}</div>
-        </div>
-        <div class="hero-actions">
-          <button class="primary-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('video')" type="button">Start Video Call</button>
-          <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('video')" type="button">Join Video Call</button>
-          <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('audio')" type="button">Start Audio Call</button>
-          <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('audio')" type="button">Join Audio Call</button>
-          <button class="ghost-action" onclick="stopCamera()" type="button">End Call</button>
-        </div>
-        ${state.callStatus ? `<p class="status-text">${escapeHtml(state.callStatus)}</p>` : ""}
-      </section>
-      <section class="panel"><div class="panel-title"><span class="eyebrow">How calls work</span><h2>Same room, two users</h2></div><p class="muted">One person starts a call, the other joins the exact same room name. Supabase Realtime carries the WebRTC connection setup; the audio/video travels browser-to-browser.</p></section>
-    </main>
-  `;
-  if (state.page === "inbox") {
+  if (state.page === "golive" || state.page === "live") {
+    const liveRooms = state.liveRoomSearch ? state.liveRoomSearchResults : state.liveRooms;
+    const pendingInvites = state.liveRoomInvites.filter((invite) => invite.receiver_id === state.user?.id && invite.status === "pending");
+    return `
+      <main class="content-layout">
+        <section class="panel live-panel">
+          <div class="panel-title"><span class="eyebrow">GoLive</span><h2>Searchable live rooms</h2></div>
+          <form class="form-grid compact-form" onsubmit="createLiveRoom(event)">
+            <label>Live room name<input name="roomName" value="${escapeHtml(state.activeLiveRoom?.room_name || state.callRoom)}" oninput="state.callRoom=this.value" placeholder="Nakaru Lounge" /></label>
+            <button class="primary-action" ${state.liveRoomCreating ? "disabled" : ""} type="submit">${state.liveRoomCreating ? "Creating..." : "Create Searchable Live Room"}</button>
+          </form>
+          <form class="form-grid compact-form" onsubmit="searchLiveRooms(event)">
+            <label>Search live rooms<input name="liveRoomSearch" value="${escapeHtml(state.liveRoomSearch)}" placeholder="Search by room or host" /></label>
+            <button class="ghost-action" type="submit">Search Rooms</button>
+          </form>
+          <div class="live-grid">
+            <div class="live-stage">${state.stream ? `<video id="live-video" autoplay muted playsinline></video>` : `<div><strong>Your camera preview appears here.</strong><span>Create or join a room to connect over Wi-Fi, phone data, or any internet connection.</span></div>`}</div>
+            <div class="live-stage remote-stage">${state.remoteStream ? `<video id="remote-video" autoplay playsinline></video>` : `<div><strong>Remote user</strong><span>The other user appears here after joining the same live room.</span></div>`}</div>
+          </div>
+          <div class="hero-actions">
+            <button class="primary-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('video')" type="button">Go Live Video</button>
+            <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('audio')" type="button">Go Live Audio</button>
+            <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('video')" type="button">Join Current Video</button>
+            <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('audio')" type="button">Join Current Audio</button>
+            <button class="ghost-action" onclick="endLiveRoom()" type="button">End Live</button>
+          </div>
+          ${state.callStatus ? `<p class="status-text">${escapeHtml(state.callStatus)}</p>` : ""}
+          ${state.liveRoomStatus ? `<p class="status-text">${escapeHtml(state.liveRoomStatus)}</p>` : ""}
+        </section>
+        <aside class="panel sidebar-panel">
+          <div class="panel-title"><span class="eyebrow">Live directory</span><h2>Rooms users can search</h2></div>
+          <div class="user-card-list">${liveRooms.length ? liveRooms.map(liveRoomCard).join("") : `<p class="empty-state">No live rooms found yet.</p>`}</div>
+          <div class="panel-title"><span class="eyebrow">Invite friends</span><h2>Bring people in</h2></div>
+          <div class="user-card-list">${state.friends.length ? state.friends.map((friend) => userCard(friend, `<button class="primary-action" onclick="inviteFriendToLiveRoom('${friend.id}')" type="button">Invite to Live</button>`)).join("") : `<p class="empty-state">Accepted friends will appear here for live room invites.</p>`}</div>
+          <div class="panel-title"><span class="eyebrow">Invites</span><h2>Incoming live invites</h2></div>
+          <div class="user-card-list">${pendingInvites.length ? pendingInvites.map((invite) => {
+            const sender = profileById(invite.sender_id);
+            return userCard(sender, `<button class="primary-action" onclick="acceptLiveInvite('${invite.id}')" type="button">Join</button><button class="ghost-action" onclick="declineLiveInvite('${invite.id}')" type="button">Decline</button>`);
+          }).join("") : `<p class="empty-state">No live invites right now.</p>`}</div>
+        </aside>
+      </main>
+    `;
+  }
+  if (state.page === "friend-requests") {
+    const incomingPending = state.incomingRequests.filter((request) => request.status === "pending");
+    const outgoingPending = state.outgoingRequests.filter((request) => request.status === "pending");
+    return `
+      <main class="content-layout">
+        <section class="panel">
+          <div class="panel-title"><span class="eyebrow">Friend requests</span><h2>Incoming requests</h2></div>
+          <div class="user-card-list">${incomingPending.length ? incomingPending.map((request) => {
+            const profile = state.publicProfiles.find((item) => item.id === request.sender_id) || { id: request.sender_id, username: "member", display_name: "Nakaru Member" };
+            return userCard(profile, `<button class="primary-action" onclick="respondFriendRequest('${request.id}', 'accepted')" type="button">Accept</button><button class="ghost-action" onclick="respondFriendRequest('${request.id}', 'declined')" type="button">Decline</button>`);
+          }).join("") : `<p class="empty-state">No incoming friend requests yet.</p>`}</div>
+          ${state.socialStatus ? `<p class="status-text">${escapeHtml(state.socialStatus)}</p>` : ""}
+        </section>
+        <aside class="panel sidebar-panel">
+          <div class="panel-title"><span class="eyebrow">Pending</span><h2>Sent requests</h2></div>
+          <div class="user-card-list">${outgoingPending.length ? outgoingPending.map((request) => {
+            const profile = state.publicProfiles.find((item) => item.id === request.receiver_id) || { id: request.receiver_id, username: "member", display_name: "Nakaru Member" };
+            return userCard(profile, `<button class="ghost-action" type="button" disabled>Pending</button>`);
+          }).join("") : `<p class="empty-state">No outgoing requests.</p>`}</div>
+        </aside>
+      </main>
+    `;
+  }
+  if (state.page === "calls") {
+    const ringingCalls = state.calls.filter((call) => call.status === "ringing");
+    return `
+      <main class="content-layout">
+        <section class="panel live-panel">
+          <div class="panel-title"><span class="eyebrow">Internet calls</span><h2>Audio and video calls</h2></div>
+          <p class="muted">Nakaru-San calls use your internet connection through WebRTC, so they work over Wi-Fi, phone data, or any active browser connection. No phone line is required.</p>
+          <div class="live-grid">
+            <div class="live-stage">${state.stream ? `<video id="live-video" autoplay muted playsinline></video>` : `<div><strong>Your camera preview appears here.</strong><span>Start or accept a call to connect.</span></div>`}</div>
+            <div class="live-stage remote-stage">${state.remoteStream ? `<video id="remote-video" autoplay playsinline></video>` : `<div><strong>Friend video</strong><span>Your friend appears here after they accept and connect.</span></div>`}</div>
+          </div>
+          <div class="hero-actions">
+            <button class="ghost-action" onclick="endActiveCall()" type="button">End Call</button>
+          </div>
+          ${state.callStatus ? `<p class="status-text">${escapeHtml(state.callStatus)}</p>` : ""}
+        </section>
+        <aside class="panel sidebar-panel">
+          <div class="panel-title"><span class="eyebrow">Friends</span><h2>Start a call</h2></div>
+          <div class="user-card-list">${state.friends.length ? state.friends.map((friend) => userCard(friend, `<button class="primary-action" onclick="startFriendCall('${friend.id}', 'video')" type="button">Video Call</button><button class="ghost-action" onclick="startFriendCall('${friend.id}', 'audio')" type="button">Audio Call</button>`)).join("") : `<p class="empty-state">Accept a friend request before starting direct calls.</p>`}</div>
+          <div class="panel-title"><span class="eyebrow">Incoming</span><h2>Call requests</h2></div>
+          <div class="user-card-list">${ringingCalls.length ? ringingCalls.map((call) => {
+            const otherId = call.caller_id === state.user?.id ? call.receiver_id : call.caller_id;
+            const other = profileById(otherId);
+            const action = call.receiver_id === state.user?.id
+              ? `<button class="primary-action" onclick="acceptCall('${call.id}')" type="button">Accept ${escapeHtml(call.call_type)}</button><button class="ghost-action" onclick="declineCall('${call.id}')" type="button">Decline</button>`
+              : `<button class="ghost-action" type="button" disabled>Ringing...</button>`;
+            return userCard(other, action);
+          }).join("") : `<p class="empty-state">No incoming calls right now.</p>`}</div>
+        </aside>
+      </main>
+    `;
+  }
+  if (state.page === "inbox" || state.page === "messages") {
     const messageTargets = state.publicProfiles.filter((profile) => profile.id !== state.user?.id);
     const activeRecipient = state.publicProfiles.find((profile) => profile.id === state.activeDmRecipient);
     const dmMessages = state.activeDmRecipient ? state.dmMessages : activeThread.messages.map((message) => ({ ...message, sender_id: message.fromMe ? state.user?.id : "demo", recipient_id: state.user?.id, created_at: new Date().toISOString() }));
@@ -3444,14 +4085,28 @@ function renderPage() {
         </section>
         <section class="panel dm-panel">
           <div class="panel-title"><span class="eyebrow">Conversation</span><h2>${escapeHtml(activeRecipient?.display_name || activeRecipient?.username || activeThread.user)}</h2></div>
-          <div class="dm-window">${dmMessages.map((message) => `<p class="bubble ${message.sender_id === state.user?.id || message.fromMe ? "mine" : ""}">${escapeHtml(message.text)}</p>`).join("")}</div>
-          <form class="message-form" onsubmit="sendDm(event)"><input placeholder="Message ${escapeHtml(activeRecipient?.display_name || activeThread.user)}" /><button class="primary-action" type="submit">Send</button></form>
+          <div class="dm-window">${dmMessages.map(renderDmBubble).join("")}</div>
+          <form class="message-form media-message-form" onsubmit="sendDm(event)"><input placeholder="Message ${escapeHtml(activeRecipient?.display_name || activeThread.user)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>
           ${state.dmStatus ? `<p class="status-text">${escapeHtml(state.dmStatus)}</p>` : ""}
         </section>
       </main>
     `;
   }
-  if (state.page === "private-rooms") return `<main class="page-grid"><section class="panel"><div class="panel-title"><span class="eyebrow">Private chatrooms</span><h2>Invite-only rooms</h2></div><div class="card-grid"><article class="room-card"><h3>Crew Night</h3><p>Invite-only watch list planning.</p><span>4 members</span><button class="ghost-action" type="button">Request Invite</button></article><article class="room-card"><h3>Raid Party</h3><p>Private gaming voice room.</p><span>6 members</span><button class="ghost-action" type="button">Request Invite</button></article></div></section></main>`;
+  if (state.page === "private-rooms") {
+    const activePrivateRoom = privateRooms.find((room) => room.id === state.activePrivateRoom) || privateRooms[0];
+    return `
+      <main class="content-layout">
+        <section class="panel">
+          <div class="panel-title"><span class="eyebrow">Private chatrooms</span><h2>${escapeHtml(activePrivateRoom.name)}</h2></div>
+          <div class="room-tabs">${privateRooms.map((room) => `<button class="${room.id === state.activePrivateRoom ? "active" : ""}" onclick="state.activePrivateRoom='${room.id}'; loadRoomMessages('${room.id}').finally(render)" type="button">${escapeHtml(room.name)}</button>`).join("")}</div>
+          <div class="chat-window">${(state.roomMessages[state.activePrivateRoom] || []).map(renderChatLine).join("")}</div>
+          <form class="message-form media-message-form" onsubmit="sendRoomMessage(event, state.activePrivateRoom, 'privateRoomStatus')"><input placeholder="Message ${escapeHtml(activePrivateRoom.name)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>
+          ${state.privateRoomStatus ? `<p class="status-text">${escapeHtml(state.privateRoomStatus)}</p>` : ""}
+        </section>
+        <aside class="panel sidebar-panel"><h3>Invite-only room</h3><p>${escapeHtml(activePrivateRoom.topic)}</p><p class="muted">For now, accepted members can use these rooms. Friend invite controls can be tied to stricter private-room membership next.</p></aside>
+      </main>
+    `;
+  }
   return `
     <main class="page-grid">
       <section class="hero panel"><div><span class="eyebrow">Anime Forum - Gaming Rooms - Live Community</span><h1>Nakaru-San</h1><p>A dark anime-style social platform for watch parties, gaming squads, creators, public chatrooms, private messages, and live video rooms.</p><div class="hero-actions"><button class="primary-action" onclick="setPage('feed')" type="button">Open Live Feed</button><button class="ghost-action" onclick="setPage('public-rooms')" type="button">Join Chatrooms</button><button class="ghost-action" onclick="setPage('golive')" type="button">Go Live</button></div></div><div class="hero-card"><img src="./nakaru-san-logo.png" alt="Nakaru-San logo" /></div></section>
@@ -3521,12 +4176,15 @@ function render() {
     ["edit-profile", "Edit Profile"],
     ["video", "Video Post"],
     ["golive", "GoLive"],
+    ["messages", "Messaging"],
+    ["calls", "Calls"],
+    ["friend-requests", "Requests"],
     ["inbox", "Inbox"]
   ];
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
@@ -3543,6 +4201,8 @@ function render() {
 window.state = state;
 window.setPage = setPage;
 window.toggleSidebar = toggleSidebar;
+window.topSearch = topSearch;
+window.openReferenceSearch = openReferenceSearch;
 window.submitAuth = submitAuth;
 window.resendVerificationEmail = resendVerificationEmail;
 window.social = social;
@@ -3556,8 +4216,23 @@ window.postDeviceVideo = postDeviceVideo;
 window.sendRoomMessage = sendRoomMessage;
 window.setDmRecipient = setDmRecipient;
 window.sendDm = sendDm;
+window.searchUsers = searchUsers;
+window.sendFriendRequest = sendFriendRequest;
+window.respondFriendRequest = respondFriendRequest;
+window.messageFriend = messageFriend;
+window.startFriendCall = startFriendCall;
+window.acceptCall = acceptCall;
+window.declineCall = declineCall;
+window.endActiveCall = endActiveCall;
 window.startCall = startCall;
 window.joinCall = joinCall;
+window.createLiveRoom = createLiveRoom;
+window.searchLiveRooms = searchLiveRooms;
+window.joinLiveRoom = joinLiveRoom;
+window.endLiveRoom = endLiveRoom;
+window.inviteFriendToLiveRoom = inviteFriendToLiveRoom;
+window.acceptLiveInvite = acceptLiveInvite;
+window.declineLiveInvite = declineLiveInvite;
 window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.signOut = signOut;
