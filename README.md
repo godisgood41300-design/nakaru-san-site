@@ -116,6 +116,8 @@ Do not add social providers to `VITE_SOCIAL_AUTH_PROVIDERS` until they are enabl
 - The "Remember this email" checkbox stores only the email address on that device. It does not store passwords.
 - Logout calls Supabase sign-out, clears old local auth fallback data, clears Supabase auth tokens from browser storage, and returns the visitor to the homepage.
 - If Supabase email confirmation is enabled, new users will see a message telling them to confirm email before logging in.
+- Signup stores the pending verification email locally so the sign-in screen can offer a resend-confirmation-email button.
+- Confirmation links are sent back to the current public site origin through Supabase Auth.
 
 ## Run locally
 

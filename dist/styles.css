@@ -1270,6 +1270,26 @@ label {
   line-height: 1.5;
 }
 
+.verification-card {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 1.15rem 1.15rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 8px;
+  background: rgba(250, 204, 21, 0.08);
+  box-shadow: 0 0 24px rgba(109, 40, 217, 0.14);
+}
+
+.verification-card span {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.verification-card .ghost-action {
+  justify-self: start;
+}
+
 .post-complete {
   display: grid;
   place-items: center;

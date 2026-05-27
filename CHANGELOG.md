@@ -11,6 +11,8 @@
 - Added confirm-password validation to signup.
 - Login/signup now creates a missing Supabase profile row for the authenticated user.
 - Background profile refreshes no longer overwrite an actively edited dirty profile form.
+- Signup now stores the pending verification email and shows a resend-confirmation-email action.
+- Confirmation links use the current public site URL so users return to the deployed app after verifying.
 
 ## 2026-05-23 - Production rebuild
 

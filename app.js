@@ -120,6 +120,8 @@ const state = {
   socialLoading: "",
   rememberedEmail: readLocal("nakaru-remember-email", ""),
   rememberEmail: Boolean(readLocal("nakaru-remember-email", "")),
+  pendingVerificationEmail: readLocal("nakaru-pending-verification-email", ""),
+  verificationSending: false,
   stream: null,
   remoteStream: null,
   peer: null,
@@ -851,6 +853,47 @@ function friendlyAuthError(error, mode) {
   return mode === "signup" ? "Could not create the account. Please check your information and try again." : "Could not sign in. Check your information and try again.";
 }
 
+function rememberPendingVerificationEmail(email) {
+  state.pendingVerificationEmail = email || "";
+  if (state.pendingVerificationEmail) writeLocal("nakaru-pending-verification-email", state.pendingVerificationEmail);
+  else localStorage.removeItem("nakaru-pending-verification-email");
+}
+
+async function resendVerificationEmail(event) {
+  event?.preventDefault();
+  if (state.verificationSending) return;
+  const email = state.pendingVerificationEmail || state.rememberedEmail;
+  if (!email || !email.includes("@")) {
+    state.authStatus = "Enter your email first so we can send the confirmation link.";
+    render();
+    return;
+  }
+  if (!ensureSupabaseClient()) {
+    state.authStatus = accountServiceWarning;
+    render();
+    return;
+  }
+  state.verificationSending = true;
+  state.authStatus = "";
+  render();
+  try {
+    const { error } = await supabaseClient.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: redirectUrl() }
+    });
+    if (error) throw error;
+    rememberPendingVerificationEmail(email);
+    state.authStatus = "Confirmation email sent. Open the link in your email, then log in.";
+  } catch (error) {
+    console.error("Verification email resend failed", error);
+    state.authStatus = "Could not send the confirmation email. Please try again soon.";
+  } finally {
+    state.verificationSending = false;
+    render();
+  }
+}
+
 async function submitAuth(event) {
   event.preventDefault();
   if (state.authLoading) return;
@@ -899,16 +942,19 @@ async function submitAuth(event) {
       if (error) throw error;
       if (!data?.session) {
         state.authMode = "signin";
-        state.authStatus = "Account created. Please check your email to confirm it, then sign in.";
+        rememberPendingVerificationEmail(email);
+        state.authStatus = "Account created. We sent a confirmation link to your email. Confirm it, then log in.";
         return;
       }
       state.user = data.session.user || data.user;
+      rememberPendingVerificationEmail("");
       await ensureProfileRecord(username);
       state.authStatus = "Account created and signed in.";
     } else {
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       state.user = data.session?.user || data.user;
+      rememberPendingVerificationEmail("");
       await ensureProfileRecord();
       state.authStatus = "Signed in successfully.";
     }
@@ -1755,6 +1801,7 @@ function renderVideoOnly(post) {
 
 function authView() {
   const enabledOauth = enabledSocialProviders();
+  const showVerificationResend = Boolean(state.pendingVerificationEmail && state.authMode === "signin" && !state.user);
   return `
     <section class="auth-card panel">
       <div class="panel-title"><span class="eyebrow">Account</span><h2>${state.authMode === "signup" ? "Create your Nakaru-San account" : "Welcome back"}</h2></div>
@@ -1768,9 +1815,10 @@ function authView() {
         <label>Password<input name="password" autocomplete="${state.authMode === "signup" ? "new-password" : "current-password"}" type="password" placeholder="8+ characters" required minlength="8" /></label>
         ${state.authMode === "signup" ? `<label>Confirm password<input name="confirmPassword" autocomplete="new-password" type="password" placeholder="Type password again" required minlength="8" /></label>` : ""}
         <label class="remember-row"><input name="rememberEmail" type="checkbox" ${state.rememberEmail ? "checked" : ""} /> Remember this email on this device</label>
-        <small class="auth-hint">Nakaru-San keeps your sign-in session and remembered email. Your browser can save the password securely.</small>
+        <small class="auth-hint">Nakaru-San remembers your secure Supabase session and saved email. Passwords are handled by Supabase and your browser password manager, not stored by this website.</small>
         <button class="primary-action" ${state.authLoading ? "disabled" : ""} type="submit">${state.authLoading ? "Working..." : state.authMode === "signup" ? "Create Account" : "Log In"}</button>
       </form>
+      ${showVerificationResend ? `<div class="verification-card"><strong>Need a new confirmation email?</strong><span>We can resend the link to ${escapeHtml(state.pendingVerificationEmail)}.</span><button class="ghost-action" onclick="resendVerificationEmail(event)" ${state.verificationSending ? "disabled" : ""} type="button">${state.verificationSending ? "Sending..." : "Resend confirmation email"}</button></div>` : ""}
       ${enabledOauth.length ? `<div class="oauth-row social-grid">${enabledOauth.map((item) => `<button onclick="social('${item.provider}')" ${state.socialLoading ? "disabled" : ""} type="button">${escapeHtml(state.socialLoading === item.provider ? "Connecting..." : item.label)}</button>`).join("")}</div>` : ""}
       ${state.authStatus ? `<p class="status-text">${escapeHtml(state.authStatus)}</p>` : ""}
     </section>
@@ -2003,6 +2051,7 @@ window.state = state;
 window.setPage = setPage;
 window.toggleSidebar = toggleSidebar;
 window.submitAuth = submitAuth;
+window.resendVerificationEmail = resendVerificationEmail;
 window.social = social;
 window.updateProfile = updateProfile;
 window.setProfileImage = setProfileImage;
