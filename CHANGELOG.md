@@ -26,6 +26,7 @@
 - Added searchable Go Live rooms so a user's live room appears in a live directory and can be joined by room search.
 - Added live room friend invites, incoming live invite actions, and internet-based audio/video call controls.
 - Added image/video attachments from a user's device for public chatrooms, private rooms, and direct messages.
+- Removed the public "some account data could not load" banner by treating friend/message/live-room extras as optional social data loads.
 
 ## 2026-05-23 - Production rebuild
 

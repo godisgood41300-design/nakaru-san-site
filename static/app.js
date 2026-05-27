@@ -325,6 +325,13 @@ function withTimeout(promise, label = "Request", timeoutMs = requestTimeoutMs) {
   return Promise.race([Promise.resolve(promise), timeout]).finally(() => window.clearTimeout(timer));
 }
 
+function visibleBootWarnings() {
+  return bootWarnings.filter((warning) => {
+    const text = String(warning).toLowerCase();
+    return !(text.includes("account data") && text.includes("could not load"));
+  });
+}
+
 function toggleSidebar(force) {
   state.sidebarOpen = typeof force === "boolean" ? force : !state.sidebarOpen;
   render();
@@ -506,11 +513,16 @@ async function afterAuthChange() {
   if (state.user) {
     try {
       await withTimeout(loadProfile(), "Profile load", 6000);
-      await withTimeout(loadSocialData(), "Social data load", 6000);
+    } catch (error) {
+      console.error("Profile data load failed", error);
+      state.profile = { id: state.user.id, ...defaultProfileForUser(state.user), ...(state.profile || {}) };
+      state.savedProfile = { ...state.profile };
+    }
+    try {
+      await withTimeout(loadSocialData(), "Social data load", 4500);
       subscribeSocialRealtime();
     } catch (error) {
-      console.error("Data load failed", error);
-      bootWarnings.push("Some account data could not load. The public app is still available.");
+      console.warn("Optional social data load failed", error);
     }
   } else {
     await unsubscribeSocialRealtime();
@@ -699,14 +711,23 @@ async function loadDirectMessagesFallback() {
 
 async function loadSocialData() {
   if (!supabaseClient || !state.user) return;
-  await Promise.allSettled([
+  const results = await Promise.allSettled([
     loadFriendRequests(),
     loadFriendships(),
     loadCalls(),
     loadLiveRooms(),
     loadLiveRoomInvites()
   ]);
-  if (state.activeDmRecipient) await loadDirectMessages();
+  results.forEach((result) => {
+    if (result.status === "rejected") console.warn("Optional social table unavailable", result.reason);
+  });
+  if ((state.page === "messages" || state.page === "inbox") && state.activeDmRecipient && isFriend(state.activeDmRecipient)) {
+    try {
+      await withTimeout(loadDirectMessages(), "Message history load", 4500);
+    } catch (error) {
+      console.warn("Direct messages could not load yet", error);
+    }
+  }
 }
 
 async function loadFriendRequests() {
@@ -2493,6 +2514,7 @@ function renderMerchBanner() {
 
 function render() {
   window.NAKARU_BOOT_RENDERED = true;
+  const warnings = visibleBootWarnings();
   const nav = [
     ["home", "Home"],
     ["feed", "Live Feed"],
@@ -2514,8 +2536,8 @@ function render() {
       ${renderLogoSidebar(nav)}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
-      ${bootWarnings.length ? `<div class="demo-banner">${escapeHtml(bootWarnings[bootWarnings.length - 1])}</div>` : ""}
-      ${(!config.supabaseUrl || !config.supabaseAnonKey) && !bootWarnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Account sign-in needs Supabase config. Public pages are still available.</div>` : ""}
+      ${warnings.length ? `<div class="demo-banner">${escapeHtml(warnings[warnings.length - 1])}</div>` : ""}
+      ${(!config.supabaseUrl || !config.supabaseAnonKey) && !warnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Account sign-in needs Supabase config. Public pages are still available.</div>` : ""}
       ${renderPage()}
     </div>
   `;
