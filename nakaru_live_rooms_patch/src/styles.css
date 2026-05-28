@@ -1,0 +1,355 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(112, 60, 255, 0.38), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(255, 204, 80, 0.2), transparent 28rem),
+    #070711;
+  color: #fff;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.page {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 30px 0;
+}
+
+.topbar,
+.card,
+.hero {
+  border: 1px solid rgba(255,255,255,0.13);
+  background: rgba(16, 16, 32, 0.84);
+  box-shadow: 0 18px 70px rgba(0,0,0,0.25);
+  backdrop-filter: blur(16px);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: 24px;
+  margin-bottom: 22px;
+}
+
+.topbar span {
+  display: block;
+  color: #c9c1e8;
+  font-size: 0.9rem;
+}
+
+.hero {
+  padding: 44px;
+  border-radius: 32px;
+  margin-bottom: 24px;
+  background:
+    linear-gradient(135deg, rgba(124, 77, 255, 0.34), rgba(255, 211, 106, 0.12)),
+    rgba(16, 16, 32, 0.78);
+}
+
+.eyebrow {
+  color: #ffd36a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+  font-size: 0.78rem;
+}
+
+.hero h1 {
+  margin: 0;
+  max-width: 850px;
+  font-size: clamp(2.2rem, 6vw, 4.8rem);
+  line-height: 0.95;
+}
+
+.hero p {
+  max-width: 760px;
+  color: #ded8ff;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.mainColumn,
+.sideColumn,
+.liveRooms {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  padding: 26px;
+  border-radius: 28px;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.authCard {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.warning pre {
+  padding: 16px;
+  white-space: pre-wrap;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.32);
+}
+
+form {
+  display: grid;
+  gap: 14px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 16px;
+  padding: 13px 14px;
+  outline: none;
+}
+
+select option {
+  color: #111;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #ffd36a;
+  box-shadow: 0 0 0 4px rgba(255,211,106,0.12);
+}
+
+.primaryButton,
+.secondaryButton,
+.linkButton {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.primaryButton {
+  color: #130b24;
+  background: linear-gradient(135deg, #ffd36a, #a986ff);
+}
+
+.secondaryButton {
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+}
+
+.linkButton {
+  color: #ffd36a;
+  background: transparent;
+  margin-top: 12px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: #c8c0e9;
+}
+
+.message {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.08);
+  color: #ffe8a3;
+}
+
+.sectionHeader,
+.actionRow,
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sectionHeader {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.liveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #c8c0e9;
+  background: rgba(255,255,255,0.09);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.liveBadge.active {
+  color: #fff;
+  background: rgba(255, 64, 120, 0.28);
+}
+
+.videoShell {
+  position: relative;
+  min-height: 380px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #030309;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.videoPreview {
+  width: 100%;
+  height: 380px;
+  object-fit: cover;
+  display: block;
+  background: #030309;
+}
+
+.videoPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 28px;
+  color: #ded8ff;
+  background:
+    radial-gradient(circle, rgba(124,77,255,0.22), transparent 20rem),
+    rgba(0,0,0,0.18);
+}
+
+.actionRow {
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.twoGrid {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 24px;
+}
+
+.searchBox {
+  margin-bottom: 16px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.searchBox input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.roomList {
+  display: grid;
+  gap: 12px;
+  max-height: 440px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.roomCard {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  color: #fff;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.09);
+  cursor: pointer;
+}
+
+.roomCard.selected {
+  border-color: #ffd36a;
+}
+
+.roomCard small,
+.roomCard em {
+  display: block;
+  color: #c8c0e9;
+  margin-top: 3px;
+}
+
+.roomCard em {
+  font-style: normal;
+}
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #777;
+}
+
+.dot.on {
+  background: #ff4078;
+  box-shadow: 0 0 18px #ff4078;
+}
+
+.viewerCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #ffd36a;
+  font-weight: 900;
+}
+
+@media (max-width: 940px) {
+  .layout,
+  .twoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 30px;
+  }
+
+  .topbar,
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
