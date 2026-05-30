@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-05-30 - Homepage merch banner sizing
+
+- Reduced the global Nakaru-San hoodie/merch banner height and changed it into a wide rectangular header-style banner across pages.
+- Switched the merch image fit to a cleaner cover crop so it no longer appears as a giant square block.
+
 ## 2026-05-30 - Clickable member profiles everywhere
 
 - Added a public member profile view that opens from any user photo/name and shows profile info, friend-request status, message action, and that member's posts.
