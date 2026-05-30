@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-05-30 - Friend request and messaging reliability fix
+
+- Friend request sending now refreshes request/friendship state, detects existing friends, existing pending requests, and retryable declined requests.
+- Accepting a friend request now creates both friendship rows with duplicate-safe Supabase upsert behavior.
+- Search results now show friend-request status messages directly on the Search Users page.
+- Added a Supabase RLS policy that lets a sender retry a previously declined friend request by changing it back to pending.
+
 ## 2026-05-30 - Live room, user search, banner, and no-confirmation auth fix
 
 - Fixed user search rendering by replacing a broken `friendStatus()` reference with the existing relationship-status helper.

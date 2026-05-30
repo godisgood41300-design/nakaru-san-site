@@ -1453,20 +1453,43 @@ async function sendFriendRequest(receiverId) {
     return;
   }
   if (!receiverId || receiverId === state.user.id) return;
+  if (!ensureSupabaseClient()) {
+    state.socialStatus = "Friend requests need account services online.";
+    render();
+    return;
+  }
   try {
-    const existing = [...state.incomingRequests, ...state.outgoingRequests].find((request) => [request.sender_id, request.receiver_id].includes(receiverId));
-    if (existing?.status === "pending") {
-      state.socialStatus = "Friend request is already pending.";
+    await Promise.allSettled([loadFriendRequests(), loadFriendships()]);
+    if (isFriend(receiverId)) {
+      state.socialStatus = "You are already friends. You can message this member now.";
+      state.activeDmRecipient = receiverId;
       render();
       return;
     }
-    const { error } = await supabaseClient.from("friend_requests").insert({ sender_id: state.user.id, receiver_id: receiverId, status: "pending" });
-    if (error) throw error;
+    const existing = [...state.incomingRequests, ...state.outgoingRequests].find((request) => [request.sender_id, request.receiver_id].includes(receiverId));
+    if (existing?.status === "pending") {
+      state.socialStatus = existing.receiver_id === state.user.id ? "This member already sent you a request. Open Requests to respond." : "Friend request is already pending.";
+      render();
+      return;
+    }
+    if (existing?.status === "declined" && existing.sender_id === state.user.id) {
+      const { error } = await supabaseClient
+        .from("friend_requests")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.from("friend_requests").insert({ sender_id: state.user.id, receiver_id: receiverId, status: "pending" });
+      if (error) throw error;
+    }
     state.socialStatus = "Friend request sent.";
     await loadFriendRequests();
   } catch (error) {
     console.error("Friend request failed", error);
-    state.socialStatus = "Friend request could not be sent.";
+    const message = String(error?.message || "").toLowerCase();
+    state.socialStatus = message.includes("duplicate") || error?.code === "23505"
+      ? "A friend request already exists. Check Requests for its status."
+      : "Friend request could not be sent. Run the latest friend-request SQL in Supabase.";
   } finally {
     render();
   }
@@ -1483,16 +1506,18 @@ async function respondFriendRequest(requestId, status) {
         { user_id: state.user.id, friend_id: request.sender_id },
         { user_id: request.sender_id, friend_id: state.user.id }
       ];
-      const { error: friendError } = await supabaseClient.from("friendships").upsert(rows, { onConflict: "user_id,friend_id" });
+      const { error: friendError } = await supabaseClient
+        .from("friendships")
+        .upsert(rows, { onConflict: "user_id,friend_id", ignoreDuplicates: true });
       if (friendError) throw friendError;
       state.socialStatus = "Friend request accepted.";
     } else {
       state.socialStatus = `Friend request ${status}.`;
     }
-    await loadSocialData();
+    await Promise.allSettled([loadPublicProfiles(), loadFriendRequests(), loadFriendships(), loadDirectMessages()]);
   } catch (error) {
     console.error("Friend request response failed", error);
-    state.socialStatus = "Request could not be updated.";
+    state.socialStatus = "Request could not be updated. Run the latest friend-request SQL in Supabase.";
   } finally {
     render();
   }
@@ -2431,6 +2456,7 @@ function renderPage() {
           <button class="primary-action" type="submit">Search Users</button>
         </form>
         ${state.searchStatus ? `<p class="status-text">${escapeHtml(state.searchStatus)}</p>` : ""}
+        ${state.socialStatus ? `<p class="status-text">${escapeHtml(state.socialStatus)}</p>` : ""}
         <div class="user-card-list">${state.searchResults.length ? state.searchResults.map((profile) => userCard(profile)).join("") : `<p class="empty-state">Search a username or display name to find people to message.</p>`}</div>
       </section>
       <aside class="panel sidebar-panel">

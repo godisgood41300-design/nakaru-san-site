@@ -342,6 +342,12 @@ on public.friend_requests for update
 using (auth.uid() = receiver_id)
 with check (auth.uid() = receiver_id);
 
+drop policy if exists "senders retry declined friend requests" on public.friend_requests;
+create policy "senders retry declined friend requests"
+on public.friend_requests for update
+using (auth.uid() = sender_id and status = 'declined')
+with check (auth.uid() = sender_id and status = 'pending');
+
 drop policy if exists "friendships visible to members" on public.friendships;
 create policy "friendships visible to members"
 on public.friendships for select
