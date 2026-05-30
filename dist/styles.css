@@ -547,6 +547,14 @@ label {
   gap: 0.55rem;
 }
 
+.avatar-button {
+  display: inline-grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
 .icon-only {
   display: inline-flex;
   align-items: center;
@@ -861,7 +869,7 @@ label {
 
 .user-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.8rem;
   padding: 0.85rem;
@@ -877,6 +885,55 @@ label {
 
 .user-card span {
   color: var(--muted);
+}
+
+.profile-identity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.profile-identity span {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.profile-identity strong {
+  color: var(--text);
+}
+
+.profile-identity small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-link,
+.inline-profile-link {
+  cursor: pointer;
+}
+
+.profile-link:hover strong,
+.inline-profile-link:hover {
+  color: var(--gold);
+}
+
+.inline-profile-link {
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-weight: 900;
+  text-align: left;
 }
 
 .user-card-actions,
@@ -1338,6 +1395,14 @@ label {
   margin: 0.3rem 1rem;
   padding: 0.7rem;
   text-align: left;
+}
+
+.thread .profile-identity {
+  flex: 1 1 auto;
+}
+
+.thread .ghost-action {
+  margin-left: auto;
 }
 
 .thread span {

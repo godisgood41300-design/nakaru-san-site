@@ -113,6 +113,8 @@ const state = {
   dmMessages: readLocal("nakaru-direct-messages", []),
   dmStatus: "",
   publicProfiles: [],
+  publicProfileId: "",
+  publicProfileStatus: "",
   topSearch: "",
   socialSearch: "",
   searchResults: [],
@@ -414,8 +416,18 @@ function profileName(profile = {}) {
 }
 
 function profileById(id) {
-  if (id === state.user?.id) return state.profile;
+  if (id === state.user?.id) return { id: state.user.id, ...state.profile };
   return state.publicProfiles.find((profile) => profile.id === id) || {};
+}
+
+function profileIdentityButton(profile = {}, size = "") {
+  const id = profile.id || "";
+  const name = profileName(profile);
+  const username = profile.username ? `@${profile.username}` : "View profile";
+  if (!id) {
+    return `<div class="profile-identity">${avatar(profile, size)}<span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(username)}</small></span></div>`;
+  }
+  return `<button class="profile-identity profile-link" onclick="openUserProfile('${escapeHtml(id)}')" type="button">${avatar(profile, size)}<span><strong>${escapeHtml(name)}</strong><small>${escapeHtml(username)}</small></span></button>`;
 }
 
 function isFriend(userId) {
@@ -1398,6 +1410,31 @@ async function searchUsers(event) {
   render();
 }
 
+async function openUserProfile(profileId) {
+  if (!profileId) return;
+  state.publicProfileId = profileId;
+  state.publicProfileStatus = "";
+  state.sidebarOpen = false;
+  state.page = "public-profile";
+  render();
+  scrollToCurrentPage();
+  try {
+    await loadPublicProfiles();
+    if (state.user) {
+      await Promise.allSettled([loadFriendRequests(), loadFriendships()]);
+    }
+    if (!profileById(profileId).id) {
+      state.publicProfileStatus = "This profile could not be found yet. Ask the member to save their profile once.";
+    }
+  } catch (error) {
+    console.error("Public profile load failed", error);
+    state.publicProfileStatus = "Profile could not load right now. Please try again soon.";
+  } finally {
+    render();
+    scrollToCurrentPage();
+  }
+}
+
 async function topSearch(event) {
   event?.preventDefault();
   const value = String(new FormData(event.currentTarget).get("topSearch") || "").trim();
@@ -1424,6 +1461,8 @@ function openReferenceSearch(kind = "images", value = state.socialSearch || stat
 
 function actionForProfile(profile) {
   const status = relationTo(profile.id);
+  if (status === "self") return `<button class="ghost-action" onclick="setPage('edit-profile')" type="button">Edit Profile</button>`;
+  if (status === "signed-out") return `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in to Add</button>`;
   if (status === "friend") return `<button class="primary-action" onclick="messageFriend('${profile.id}')" type="button">Message</button>`;
   if (status === "pending-in") return `<button class="primary-action" onclick="setPage('friend-requests')" type="button">Respond</button>`;
   if (status === "pending-out") return `<button class="ghost-action" type="button" disabled>Request Sent</button>`;
@@ -1434,11 +1473,7 @@ function actionForProfile(profile) {
 function userCard(profile, extra = "") {
   return `
     <article class="user-card">
-      ${avatar(profile)}
-      <div>
-        <strong>${escapeHtml(profile.display_name || profile.username || "Nakaru Member")}</strong>
-        <span>@${escapeHtml(profile.username || "member")}</span>
-      </div>
+      ${profileIdentityButton(profile)}
       <div class="user-card-actions">
         ${extra || actionForProfile(profile)}
       </div>
@@ -2279,9 +2314,11 @@ async function signOut() {
 
 function renderPost(post) {
   const postType = post.post_type || post.type || "text";
+  const authorProfile = profileById(post.user_id);
+  const postProfile = authorProfile.id ? authorProfile : { display_name: post.author || "Nakaru Member" };
   return `
     <article class="post-card">
-      <div class="post-head">${avatar({ display_name: post.author })}<div><strong>${escapeHtml(post.author || "Nakaru Member")}</strong><span>${formatTime(post.created_at)}</span></div></div>
+      <div class="post-head">${profileIdentityButton({ ...postProfile, display_name: postProfile.display_name || post.author || postProfile.username }, "")}<span>${formatTime(post.created_at)}</span></div>
       <p>${escapeHtml(post.content || "")}</p>
       ${postType === "youtube" && post.youtube_embed_url ? `<div class="video-frame"><iframe src="${escapeHtml(post.youtube_embed_url)}" title="Nakaru-San YouTube post" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
       ${postType === "video" && post.media_url ? `<div class="video-frame uploaded-video"><video src="${escapeHtml(post.media_url)}" controls playsinline preload="metadata"></video></div>` : ""}
@@ -2351,6 +2388,44 @@ function profileCard(editing = false) {
   `;
 }
 
+function publicProfileView(profile = {}) {
+  if (!profile.id) {
+    return `
+      <main class="page-grid">
+        <section class="panel">
+          <div class="panel-title"><span class="eyebrow">Member profile</span><h2>Profile not found</h2></div>
+          <p class="empty-state">${escapeHtml(state.publicProfileStatus || "This member profile could not be found yet.")}</p>
+          <div class="hero-actions"><button class="ghost-action" onclick="setPage('search')" type="button">Back to Search</button></div>
+        </section>
+      </main>
+    `;
+  }
+  const posts = state.posts.filter((post) => post.user_id === profile.id);
+  const isSelf = profile.id === state.user?.id;
+  return `
+    <main class="content-layout">
+      <section class="profile-card panel">
+        <div class="profile-banner" ${profile.banner_url ? `style="background-image:url('${escapeHtml(profile.banner_url)}')"` : ""}>${avatar(profile, "large")}</div>
+        <div class="profile-head">
+          <div>
+            <span class="eyebrow">${isSelf ? "Your public profile" : "Member profile"}</span>
+            <h2>${escapeHtml(profile.display_name || profile.username || "Nakaru Member")}</h2>
+            <p>@${escapeHtml(profile.username || "member")}</p>
+            <p>${escapeHtml(profile.bio || "Anime and gaming fan on Nakaru-San.")}</p>
+          </div>
+          <div class="user-card-actions">${actionForProfile(profile)}</div>
+        </div>
+        ${state.publicProfileStatus ? `<p class="status-text">${escapeHtml(state.publicProfileStatus)}</p>` : ""}
+        ${state.socialStatus ? `<p class="status-text">${escapeHtml(state.socialStatus)}</p>` : ""}
+      </section>
+      <section class="panel">
+        <div class="panel-title"><span class="eyebrow">Member feed</span><h2>Posts by ${escapeHtml(profile.display_name || profile.username || "this member")}</h2></div>
+        <div class="feed-list">${posts.length ? posts.map(renderPost).join("") : `<p class="empty-state">No public posts yet.</p>`}</div>
+      </section>
+    </main>
+  `;
+}
+
 function renderAboutSection() {
   const cards = [
     ["Anime & Manga Forums", "Share theories, reviews, reactions, debates, and favorite moments."],
@@ -2377,11 +2452,12 @@ function renderAboutSection() {
 }
 
 function renderChatLine(message = {}) {
+  const messageProfile = profileById(message.user_id);
+  const profile = messageProfile.id ? messageProfile : { display_name: message.author || "Nakaru Member" };
   return `
     <div class="chat-line">
-      ${avatar({ display_name: message.author })}
+      ${profileIdentityButton(profile)}
       <div>
-        <strong>${escapeHtml(message.author || "Nakaru Member")}</strong>
         ${messageBody(message) ? `<p>${escapeHtml(messageBody(message))}</p>` : ""}
         ${renderMessageMedia(message)}
       </div>
@@ -2406,7 +2482,7 @@ function liveRoomCard(room = {}) {
     <article class="room-card live-room-card">
       <div>
         <h3>${escapeHtml(room.room_name || "Nakaru Live Room")}</h3>
-        <p>Hosted by ${escapeHtml(profileName(host))}</p>
+        <p>Hosted by ${host.id ? `<button class="inline-profile-link" onclick="openUserProfile('${host.id}')" type="button">${escapeHtml(profileName(host))}</button>` : escapeHtml(profileName(host))}</p>
         <span>${isHost ? "Your live room" : "Open live room"} · ${formatTime(room.created_at)}</span>
       </div>
       <div class="user-card-actions">
@@ -2446,6 +2522,7 @@ function renderPage() {
     </main>
   `;
   if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div><div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
+  if (state.page === "public-profile") return publicProfileView(profileById(state.publicProfileId));
   if (state.page === "edit-profile") return `<main class="page-grid">${state.user ? profileCard(state.profileEditing) : authView()}</main>`;
   if (state.page === "search") return `
     <main class="content-layout">
@@ -2587,10 +2664,10 @@ function renderPage() {
       <main class="inbox-layout">
         <section class="panel thread-list">
           <div class="panel-title"><span class="eyebrow">Messaging inbox</span><h2>Direct messages</h2></div>
-          ${messageTargets.length ? messageTargets.map((profile) => `<button class="thread ${profile.id === state.activeDmRecipient ? "active" : ""}" onclick="setDmRecipient('${profile.id}')" type="button">${avatar(profile)}<span><strong>${escapeHtml(profile.display_name || profile.username)}</strong><small>@${escapeHtml(profile.username || "member")}</small></span></button>`).join("") : state.threads.map((thread) => `<button class="thread ${thread.id === state.activeThread ? "active" : ""}" onclick="state.activeThread='${thread.id}'; render()" type="button">${avatar({ display_name: thread.user })}<span><strong>${escapeHtml(thread.user)}</strong><small>${escapeHtml(thread.preview)}</small></span></button>`).join("")}
+          ${messageTargets.length ? messageTargets.map((profile) => `<div class="thread ${profile.id === state.activeDmRecipient ? "active" : ""}">${profileIdentityButton(profile)}<button class="ghost-action" onclick="setDmRecipient('${profile.id}')" type="button">Chat</button></div>`).join("") : state.threads.map((thread) => `<button class="thread ${thread.id === state.activeThread ? "active" : ""}" onclick="state.activeThread='${thread.id}'; render()" type="button">${avatar({ display_name: thread.user })}<span><strong>${escapeHtml(thread.user)}</strong><small>${escapeHtml(thread.preview)}</small></span></button>`).join("")}
         </section>
         <section class="panel dm-panel">
-          <div class="panel-title"><span class="eyebrow">Conversation</span><h2>${escapeHtml(activeRecipient?.display_name || activeRecipient?.username || activeThread.user)}</h2></div>
+          <div class="panel-title"><span class="eyebrow">Conversation</span><h2>${activeRecipient?.id ? `<button class="inline-profile-link" onclick="openUserProfile('${activeRecipient.id}')" type="button">${escapeHtml(activeRecipient.display_name || activeRecipient.username)}</button>` : escapeHtml(activeThread.user)}</h2></div>
           <div class="dm-window">${dmMessages.map(renderDmBubble).join("")}</div>
           <form class="message-form media-message-form" onsubmit="sendDm(event)"><input placeholder="Message ${escapeHtml(activeRecipient?.display_name || activeThread.user)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>
           ${state.dmStatus ? `<p class="status-text">${escapeHtml(state.dmStatus)}</p>` : ""}
@@ -2691,7 +2768,7 @@ function render() {
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `${avatar(state.profile)}<button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `<button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
@@ -2711,6 +2788,7 @@ window.toggleSidebar = toggleSidebar;
 window.openAboutSection = openAboutSection;
 window.topSearch = topSearch;
 window.openReferenceSearch = openReferenceSearch;
+window.openUserProfile = openUserProfile;
 window.submitAuth = submitAuth;
 window.social = social;
 window.updateProfile = updateProfile;

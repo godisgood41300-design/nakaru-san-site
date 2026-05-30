@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-05-30 - Clickable member profiles everywhere
+
+- Added a public member profile view that opens from any user photo/name and shows profile info, friend-request status, message action, and that member's posts.
+- Messaging rows now separate profile opening from chat selection, so clicking a member's photo/name opens their profile and clicking Chat opens the conversation.
+- User cards, post authors, chat message authors, live room hosts, friend requests, call rows, and the signed-in avatar now link to the relevant profile where a user id is available.
+- Public profiles include Add Friend, Respond, Request Sent, Message, or Edit Profile actions based on the current relationship.
+
 ## 2026-05-30 - Friend request and messaging reliability fix
 
 - Friend request sending now refreshes request/friendship state, detects existing friends, existing pending requests, and retryable declined requests.
