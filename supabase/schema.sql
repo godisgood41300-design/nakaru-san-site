@@ -421,9 +421,10 @@ using (auth.uid() = caller_id or auth.uid() = receiver_id)
 with check (auth.uid() = caller_id or auth.uid() = receiver_id);
 
 drop policy if exists "active live rooms readable by authenticated users" on public.live_rooms;
-create policy "active live rooms readable by authenticated users"
+drop policy if exists "active live rooms readable by everyone" on public.live_rooms;
+create policy "active live rooms readable by everyone"
 on public.live_rooms for select
-using (auth.role() = 'authenticated' and (is_active = true or auth.uid() = host_id));
+using (is_active = true or auth.uid() = host_id);
 
 drop policy if exists "users create own live rooms" on public.live_rooms;
 create policy "users create own live rooms"

@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-05-30 - Live room, user search, banner, and no-confirmation auth fix
+
+- Fixed user search rendering by replacing a broken `friendStatus()` reference with the existing relationship-status helper.
+- Made Search and GoLive pages publicly reachable while keeping friend requests, messages, calls, and room creation protected behind login.
+- Live room directory loading no longer requires the whole signed-in social-data bundle to succeed.
+- Creating a live room now refreshes the Supabase session first, creates an active searchable room, clears the live-room search filter, and gives a clearer schema/login error if creation fails.
+- Updated live-room RLS so active live rooms are searchable/readable by public visitors while creation and updates remain protected.
+- Removed visible email-confirmation/resend UI from the site and updated signup copy for immediate email/password login.
+- Improved banner fallback handling and added clearer messages when `profiles.banner_url` or Supabase Storage setup is missing.
+
+## 2026-05-27 - Confirmation email and persistent profile media fix
+
+- Improved signup and resend-confirmation messages so users know to check spam/promotions and configure Supabase SMTP if email does not arrive.
+- Added a resend-confirmation form that works even if the pending email was not stored in the browser.
+- Added session verification before profile save so unconfirmed or expired sessions get a clear "confirm email / log in again" message.
+- Profile picture and banner selections now upload to Supabase Storage when available, then save public URLs into the `profiles` table.
+- Profile save now returns the saved Supabase row and keeps display name, username, bio, avatar, and banner persistent after logout/login.
+- Navigation clicks now scroll smoothly to the active page content, and the logo sidebar About link opens the homepage About section directly.
+
 ## 2026-05-26 - Auth logout and remembered account fix
 
 - Removed the old local-only fake signup/login fallback from the active app.

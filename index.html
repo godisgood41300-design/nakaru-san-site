@@ -31,6 +31,7 @@
 html {
   min-height: 100%;
   background: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -68,6 +69,11 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.62;
+}
+
+.page-anchor,
+#about {
+  scroll-margin-top: 96px;
 }
 
 input,
@@ -2011,6 +2017,13 @@ function toggleSidebar(force) {
   render();
 }
 
+function openAboutSection() {
+  state.page = "home";
+  state.sidebarOpen = false;
+  render();
+  scrollToSection("#about");
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
 }
@@ -2213,12 +2226,17 @@ async function loadProfile() {
   if (!state.user) return;
   if (state.profileEditing && state.profileDirty && !state.profileSaving) return;
   if (supabaseClient) {
+    let bannerColumnMissing = false;
     let { data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(true)).eq("id", state.user.id).maybeSingle();
     if (error && isMissingColumnError(error, "banner_url")) {
+      bannerColumnMissing = true;
       ({ data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(false)).eq("id", state.user.id).maybeSingle());
     }
     if (error) console.error("Profile load failed", error);
     state.profile = { id: state.user.id, ...defaultProfileForUser(), ...(data || {}) };
+    if (bannerColumnMissing && !state.profile.banner_url) {
+      state.profile.banner_url = readLocal(`nakaru-banner-fallback-${state.user.id}`, "");
+    }
   } else {
     const profiles = readLocal("nakaru-local-profiles", {});
     state.profile = profiles[state.user.id] || { id: state.user.id, ...defaultProfileForUser(state.user) };
@@ -2455,7 +2473,7 @@ async function loadCalls() {
 }
 
 async function loadLiveRooms() {
-  if (!supabaseClient || !state.user) return;
+  if (!supabaseClient) return;
   const { data, error } = await supabaseClient
     .from("live_rooms")
     .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
@@ -2464,6 +2482,7 @@ async function loadLiveRooms() {
     .limit(50);
   if (error) {
     console.error("Live room load failed", error);
+    state.liveRoomStatus = "Live rooms are temporarily unavailable. Make sure the latest Supabase schema is installed.";
     return;
   }
   state.liveRooms = data || [];
@@ -2565,7 +2584,25 @@ async function unsubscribeSocialRealtime() {
 }
 
 function isProtectedPage(page) {
-  return ["profile", "video", "private-rooms", "search", "friends", "friend-requests", "messages", "calls", "live", "inbox"].includes(page);
+  return ["profile", "video", "private-rooms", "friends", "friend-requests", "messages", "calls", "inbox"].includes(page);
+}
+
+function scrollToCurrentPage() {
+  window.requestAnimationFrame(() => {
+    const target = document.querySelector("[data-page-root]") || document.querySelector("main");
+    if (target?.scrollIntoView) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  });
+}
+
+function scrollToSection(selector) {
+  window.requestAnimationFrame(() => {
+    const target = document.querySelector(selector);
+    if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function setPage(page) {
@@ -2578,6 +2615,7 @@ function setPage(page) {
     state.authMode = "signin";
     state.authStatus = "Please sign in to continue.";
     render();
+    scrollToCurrentPage();
     return;
   }
   state.page = page;
@@ -2585,7 +2623,16 @@ function setPage(page) {
   if (page === "edit-profile" && state.user) state.profileEditing = true;
   if (page === "public-rooms") loadRoomMessages(state.activeRoom).finally(render);
   if (page === "private-rooms") loadRoomMessages(state.activePrivateRoom).finally(render);
-  if (["search", "friends", "friend-requests", "messages", "calls", "live", "inbox"].includes(page)) {
+  if (page === "live") {
+    Promise.allSettled([
+      withTimeout(loadPublicProfiles(), "Public profiles load", 5000),
+      withTimeout(loadLiveRooms(), "Live room load", 6000)
+    ]).finally(render);
+  }
+  if (page === "search") {
+    withTimeout(loadPublicProfiles(), "Public profiles load", 5000).finally(render);
+  }
+  if (["friends", "friend-requests", "messages", "calls", "inbox"].includes(page) || (page === "live" && state.user)) {
     withTimeout(loadSocialData(), "Social data load", 6000).finally(render);
   }
   if (page === "messages" || page === "inbox") {
@@ -2600,56 +2647,38 @@ function setPage(page) {
     state.deviceVideoStatus = "";
   }
   render();
+  scrollToCurrentPage();
 }
 
 function friendlyAuthError(error, mode) {
   const message = String(error?.message || "").toLowerCase();
-  if (message.includes("email not confirmed") || message.includes("not confirmed")) return "Please confirm your email before logging in.";
+  if (message.includes("email not confirmed") || message.includes("not confirmed")) return "Email confirmation is still turned on in Supabase. Turn off Confirm email in Authentication > Providers > Email, then log in again.";
+  if (message.includes("email address not authorized")) return "Supabase rejected this email address. Check your Supabase Auth email settings.";
+  if (message.includes("rate limit")) return "Signup is temporarily rate-limited. Please wait a few minutes, then try again.";
   if (message.includes("invalid login") || message.includes("invalid credentials")) return "Wrong email or password. Please try again.";
   if (message.includes("already registered") || message.includes("already exists")) return "An account with this email already exists. Try signing in instead.";
   if (message.includes("password")) return mode === "signup" ? "Password must be at least 8 characters." : "Wrong email or password. Please try again.";
   return mode === "signup" ? "Could not create the account. Please check your information and try again." : "Could not sign in. Check your information and try again.";
 }
 
+function friendlyProfileSaveError(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("jwt") || message.includes("session") || message.includes("auth") || message.includes("row-level") || message.includes("permission") || message.includes("policy")) {
+    return "Please log in again, then save your profile.";
+  }
+  if (message.includes("duplicate") || message.includes("profiles_username")) {
+    return "That username is already taken. Please choose another username.";
+  }
+  if (message.includes("relation") && message.includes("profiles")) {
+    return "The profiles table is missing in Supabase. Run the latest Supabase schema, then try again.";
+  }
+  return "Profile could not be saved. Please try again soon.";
+}
+
 function rememberPendingVerificationEmail(email) {
   state.pendingVerificationEmail = email || "";
   if (state.pendingVerificationEmail) writeLocal("nakaru-pending-verification-email", state.pendingVerificationEmail);
   else localStorage.removeItem("nakaru-pending-verification-email");
-}
-
-async function resendVerificationEmail(event) {
-  event?.preventDefault();
-  if (state.verificationSending) return;
-  const email = state.pendingVerificationEmail || state.rememberedEmail;
-  if (!email || !email.includes("@")) {
-    state.authStatus = "Enter your email first so we can send the confirmation link.";
-    render();
-    return;
-  }
-  if (!ensureSupabaseClient()) {
-    state.authStatus = accountServiceWarning;
-    render();
-    return;
-  }
-  state.verificationSending = true;
-  state.authStatus = "";
-  render();
-  try {
-    const { error } = await withTimeout(supabaseClient.auth.resend({
-      type: "signup",
-      email,
-      options: { emailRedirectTo: redirectUrl() }
-    }), "Confirmation email", 8000);
-    if (error) throw error;
-    rememberPendingVerificationEmail(email);
-    state.authStatus = "Confirmation email sent. Open the link in your email, then log in.";
-  } catch (error) {
-    console.error("Verification email resend failed", error);
-    state.authStatus = "Could not send the confirmation email. Please try again soon.";
-  } finally {
-    state.verificationSending = false;
-    render();
-  }
 }
 
 async function submitAuth(event) {
@@ -2693,15 +2722,13 @@ async function submitAuth(event) {
         email,
         password,
         options: {
-          data: { username },
-          emailRedirectTo: redirectUrl()
+          data: { username }
         }
       }), "Signup", 9000);
       if (error) throw error;
       if (!data?.session) {
         state.authMode = "signin";
-        rememberPendingVerificationEmail(email);
-        state.authStatus = "Account created. We sent a confirmation link to your email. Confirm it, then log in.";
+        state.authStatus = "Account created. Log in with the same email and password. If login says email is not confirmed, turn off Confirm email in Supabase.";
         return;
       }
       state.user = data.session.user || data.user;
@@ -2814,6 +2841,14 @@ function mediaLabel(kind = "") {
   return kind === "video" ? "Shared a video." : kind === "image" ? "Shared an image." : "Shared media.";
 }
 
+async function refreshAuthSession() {
+  if (!supabaseClient?.auth?.getSession) return state.user;
+  const { data, error } = await withTimeout(supabaseClient.auth.getSession(), "Session refresh", 6000);
+  if (error) throw error;
+  state.user = data.session?.user || null;
+  return state.user;
+}
+
 async function uploadChatMedia(file, folder = "messages") {
   if (!file) return { media_url: "", media_type: "", media_name: "" };
   const mediaType = mediaKindFromFile(file);
@@ -2846,6 +2881,32 @@ async function uploadChatMedia(file, folder = "messages") {
   };
 }
 
+async function uploadProfileMedia(file, field) {
+  if (!file) return "";
+  if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+  const maxBytes = field === "banner_url" ? 15 * 1024 * 1024 : 8 * 1024 * 1024;
+  if (file.size > maxBytes) throw new Error(field === "banner_url" ? "Banner image is too large." : "Profile picture is too large.");
+  if (!supabaseClient) return fileToDataUrl(file);
+
+  const user = await refreshAuthSession();
+  if (!user) throw new Error("No active session.");
+  const extension = (file.name.split(".").pop() || "jpg").replace(/[^a-z0-9]/gi, "").toLowerCase() || "jpg";
+  const safeField = field === "banner_url" ? "banner" : "avatar";
+  const path = `profiles/${user.id}/${safeField}-${Date.now()}.${extension}`;
+  const { error: uploadError } = await withTimeout(
+    supabaseClient.storage.from("nakaru-media").upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false
+    }),
+    "Profile image upload",
+    15000
+  );
+  if (uploadError) throw uploadError;
+  const { data } = supabaseClient.storage.from("nakaru-media").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 function messageBody(message = {}) {
   return message.text || message.body || "";
 }
@@ -2865,19 +2926,61 @@ function renderMessageMedia(message = {}) {
 async function setProfileImage(field, input) {
   const file = input.files?.[0];
   if (!file) return;
-  const dataUrl = await fileToDataUrl(file);
-  updateProfile(field, dataUrl, { render: true });
+  state.profileStatus = field === "banner_url" ? "Uploading banner..." : "Uploading profile picture...";
+  render();
+  try {
+    const imageUrl = await uploadProfileMedia(file, field);
+    updateProfile(field, imageUrl, { render: true });
+    state.profileStatus = field === "banner_url" ? "Banner ready. Click Save Profile to keep it." : "Profile picture ready. Click Save Profile to keep it.";
+  } catch (error) {
+    console.error("Profile image upload failed", error);
+    try {
+      const localImage = await fileToDataUrl(file);
+      updateProfile(field, localImage, { render: true });
+      state.profileStatus = field === "banner_url"
+        ? "Banner preview is ready on this device. Run the Supabase storage setup so it saves permanently for every login."
+        : "Profile picture preview is ready on this device. Run the Supabase storage setup so it saves permanently for every login.";
+    } catch (fallbackError) {
+      console.error("Profile image local fallback failed", fallbackError);
+      state.profileStatus = "Image could not be uploaded. Make sure the Supabase storage setup has been run.";
+    }
+  } finally {
+    input.value = "";
+    render();
+  }
 }
 
 async function saveProfile() {
-  if (!state.user || !state.profileDirty || state.profileSaving) return;
+  if (state.profileSaving) return;
+  if (!state.user) {
+    state.profileStatus = "Please log in before saving your profile.";
+    render();
+    return;
+  }
+  if (!state.profileDirty) {
+    state.profileEditing = false;
+    state.profileStatus = "Profile is already up to date.";
+    setPage("profile");
+    return;
+  }
   state.profileSaving = true;
   state.profileStatus = "";
   render();
-  const defaults = defaultProfileForUser(state.user);
-  const suffix = String(state.user.id || crypto.randomUUID()).slice(0, 6);
+  let activeUser = state.user;
+  try {
+    activeUser = await refreshAuthSession();
+    if (!activeUser) throw new Error("No active session.");
+  } catch (error) {
+    console.error("Profile save session check failed", error);
+    state.profileSaving = false;
+    state.profileStatus = "Please log in again, then save your profile.";
+    render();
+    return;
+  }
+  const defaults = defaultProfileForUser(activeUser);
+  const suffix = String(activeUser.id || crypto.randomUUID()).slice(0, 6);
   const row = {
-    id: state.user.id,
+    id: activeUser.id,
     username: cleanUsername(state.profile.username || defaults.username, `nakaru_${suffix}`),
     display_name: state.profile.display_name || state.profile.username || defaults.display_name || "Nakaru Member",
     bio: state.profile.bio || "",
@@ -2887,33 +2990,59 @@ async function saveProfile() {
   };
   if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
   try {
+    let bannerColumnMissing = false;
     if (supabaseClient) {
-      let { error } = await withTimeout(supabaseClient.from("profiles").upsert(row, { onConflict: "id" }), "Profile save", 9000);
+      let savedData = null;
+      let { data, error } = await withTimeout(
+        supabaseClient.from("profiles").upsert(row, { onConflict: "id" }).select(profileSelectColumns(true)).single(),
+        "Profile save",
+        9000
+      );
       if (error && isMissingColumnError(error, "banner_url")) {
+        bannerColumnMissing = true;
         const { banner_url, ...rowWithoutBanner } = row;
-        ({ error } = await withTimeout(supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }), "Profile save retry", 9000));
+        ({ data, error } = await withTimeout(
+          supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }).select(profileSelectColumns(false)).single(),
+          "Profile save retry",
+          9000
+        ));
       }
       if (error && String(error.message || "").toLowerCase().includes("duplicate")) {
         row.username = `${row.username}_${suffix}`.slice(0, 31);
         const { banner_url, ...retryRow } = row;
-        ({ error } = await withTimeout(supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }), "Profile username retry", 9000));
+        ({ data, error } = await withTimeout(
+          supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }).select(profileSelectColumns(false)).single(),
+          "Profile username retry",
+          9000
+        ));
       }
       if (error) throw error;
+      savedData = data;
+      state.profile = { ...row, ...(savedData || {}) };
+      if (bannerColumnMissing) {
+        state.profile.banner_url = row.banner_url;
+        writeLocal(`nakaru-banner-fallback-${activeUser.id}`, row.banner_url || "");
+      }
     } else {
       const profiles = readLocal("nakaru-local-profiles", {});
       profiles[state.user.id] = row;
       writeLocal("nakaru-local-profiles", profiles);
       writeLocal("nakaru-profile", row);
+      state.profile = row;
     }
-    state.profile = row;
-    state.savedProfile = { ...row };
+    state.savedProfile = { ...state.profile };
     state.profileDirty = false;
     state.profileEditing = false;
-    state.profileStatus = "Profile updated successfully.";
+    state.profileStatus = bannerColumnMissing
+      ? "Profile updated, but Supabase is missing the banner_url column. Run the latest schema so banners persist after login."
+      : "Profile updated successfully.";
+    if (supabaseClient && state.profile.banner_url === row.banner_url && row.banner_url.startsWith("data:")) {
+      state.profileStatus = "Profile updated, but the banner is still stored only on this device. Run the Supabase storage setup so banner images save permanently.";
+    }
     setPage("profile");
   } catch (error) {
     console.error("Profile save failed", error);
-    state.profileStatus = "Profile could not be saved. Please try again soon.";
+    state.profileStatus = friendlyProfileSaveError(error);
     render();
   } finally {
     state.profileSaving = false;
@@ -2974,7 +3103,7 @@ function openReferenceSearch(kind = "images", value = state.socialSearch || stat
 }
 
 function actionForProfile(profile) {
-  const status = friendStatus(profile.id);
+  const status = relationTo(profile.id);
   if (status === "friend") return `<button class="primary-action" onclick="messageFriend('${profile.id}')" type="button">Message</button>`;
   if (status === "pending-in") return `<button class="primary-action" onclick="setPage('friend-requests')" type="button">Respond</button>`;
   if (status === "pending-out") return `<button class="ghost-action" type="button" disabled>Request Sent</button>`;
@@ -3472,7 +3601,13 @@ async function endActiveCall() {
 async function createLiveRoom(event) {
   event?.preventDefault();
   if (state.liveRoomCreating) return;
-  if (!state.user) {
+  let activeUser = state.user;
+  try {
+    activeUser = await refreshAuthSession();
+  } catch (error) {
+    console.error("Live room session check failed", error);
+  }
+  if (!activeUser) {
     state.liveRoomStatus = "Sign in to create a live room.";
     render();
     return;
@@ -3490,17 +3625,18 @@ async function createLiveRoom(event) {
   try {
     const { data, error } = await withTimeout(supabaseClient
       .from("live_rooms")
-      .insert({ host_id: state.user.id, room_name: roomName, room_url: `${redirectUrl()}#live`, is_active: true })
+      .insert({ host_id: activeUser.id, room_name: roomName, room_url: `${redirectUrl()}#live`, is_active: true })
       .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
       .single(), "Live room create", 8000);
     if (error) throw error;
     state.activeLiveRoom = data;
     state.callRoom = data.id;
+    state.liveRoomSearch = "";
     state.liveRoomStatus = "Live room is live and searchable. Invite friends or start video.";
     await loadLiveRooms();
   } catch (error) {
     console.error("Live room create failed", error);
-    state.liveRoomStatus = "Live room could not be created.";
+    state.liveRoomStatus = "Live room could not be created. Run the latest Supabase schema and confirm you are logged in.";
   } finally {
     state.liveRoomCreating = false;
     render();
@@ -3512,6 +3648,11 @@ async function searchLiveRooms(event) {
   const value = event ? String(new FormData(event.currentTarget).get("liveRoomSearch") || "") : state.liveRoomSearch;
   state.liveRoomSearch = value.trim();
   await loadLiveRooms();
+  if (state.liveRoomSearch && !state.liveRoomSearchResults.length) {
+    state.liveRoomStatus = "No matching live rooms are active yet.";
+  } else if (state.liveRoomSearch) {
+    state.liveRoomStatus = `${state.liveRoomSearchResults.length} live room${state.liveRoomSearchResults.length === 1 ? "" : "s"} found.`;
+  }
   render();
 }
 
@@ -3816,7 +3957,6 @@ function renderVideoOnly(post) {
 
 function authView() {
   const enabledOauth = enabledSocialProviders();
-  const showVerificationResend = Boolean(state.pendingVerificationEmail && state.authMode === "signin" && !state.user);
   return `
     <section class="auth-card panel">
       <div class="panel-title"><span class="eyebrow">Account</span><h2>${state.authMode === "signup" ? "Create your Nakaru-San account" : "Welcome back"}</h2></div>
@@ -3833,7 +3973,6 @@ function authView() {
         <small class="auth-hint">Nakaru-San remembers your secure Supabase session and saved email. Passwords are handled by Supabase and your browser password manager, not stored by this website.</small>
         <button class="primary-action" ${state.authLoading ? "disabled" : ""} type="submit">${state.authLoading ? "Working..." : state.authMode === "signup" ? "Create Account" : "Log In"}</button>
       </form>
-      ${showVerificationResend ? `<div class="verification-card"><strong>Need a new confirmation email?</strong><span>We can resend the link to ${escapeHtml(state.pendingVerificationEmail)}.</span><button class="ghost-action" onclick="resendVerificationEmail(event)" ${state.verificationSending ? "disabled" : ""} type="button">${state.verificationSending ? "Sending..." : "Resend confirmation email"}</button></div>` : ""}
       ${enabledOauth.length ? `<div class="oauth-row social-grid">${enabledOauth.map((item) => `<button onclick="social('${item.provider}')" ${state.socialLoading ? "disabled" : ""} type="button">${escapeHtml(state.socialLoading === item.provider ? "Connecting..." : item.label)}</button>`).join("")}</div>` : ""}
       ${state.authStatus ? `<p class="status-text">${escapeHtml(state.authStatus)}</p>` : ""}
     </section>
@@ -4157,7 +4296,7 @@ function renderLogoSidebar(nav) {
       <p>Jump into the anime forum, gaming rooms, live feed, messages, and the new About Nakaru-San community story.</p>
       <div class="sidebar-links">
         ${nav.map(([id, label]) => `<button class="${state.page === id ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}
-        <button onclick="toggleSidebar(false); document.getElementById('about')?.scrollIntoView({ behavior: 'smooth', block: 'start' });" type="button">About Nakaru-San</button>
+        <button onclick="openAboutSection()" type="button">About Nakaru-San</button>
       </div>
       <div class="sidebar-cta">
         <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
@@ -4212,7 +4351,7 @@ function render() {
       <div class="version-badge">${version}</div>
       ${warnings.length ? `<div class="demo-banner">${escapeHtml(warnings[warnings.length - 1])}</div>` : ""}
       ${(!config.supabaseUrl || !config.supabaseAnonKey) && !warnings.length && !state.user && state.page !== "edit-profile" ? `<div class="demo-banner">Account sign-in needs Supabase config. Public pages are still available.</div>` : ""}
-      ${renderPage()}
+      <div class="page-anchor" data-page-root="${escapeHtml(state.page)}">${renderPage()}</div>
     </div>
   `;
   if (state.stream) {
@@ -4223,10 +4362,10 @@ function render() {
 window.state = state;
 window.setPage = setPage;
 window.toggleSidebar = toggleSidebar;
+window.openAboutSection = openAboutSection;
 window.topSearch = topSearch;
 window.openReferenceSearch = openReferenceSearch;
 window.submitAuth = submitAuth;
-window.resendVerificationEmail = resendVerificationEmail;
 window.social = social;
 window.updateProfile = updateProfile;
 window.setProfileImage = setProfileImage;

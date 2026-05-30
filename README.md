@@ -97,12 +97,12 @@ https://supabase.com/dashboard/project/your-project-ref/settings/api-keys/legacy
 5. Set Site URL to your live domain, for example `https://nakaru-san.nakaru-san.com`.
 6. Add redirect URLs for your live domain, for example `https://nakaru-san.nakaru-san.com/*`.
 7. If you also use the apex domain, add it too, for example `https://nakaru-san.com/*`.
-8. Remove any old localhost-only URL if Supabase keeps sending confirmation links there.
+8. Go to Authentication > Providers > Email and turn off "Confirm email" if you want users to sign up and log in immediately.
 9. Email/password auth is the default account system. Enable social OAuth providers only if you have the matching app credentials and redirect URLs set up.
 
 Run `supabase/schema.sql` again after this update if you want the new Requests, Friends, Messaging, Calls, and Live Room Invite tables. The file uses `create table if not exists`, `alter table`, and `drop policy if exists`, so it is safe to rerun against the current project.
 
-The signup code now sends `emailRedirectTo: window.location.origin`, so new confirmation emails should return to the exact public site the user signed up from. If an old email still points to localhost, sign up again or resend confirmation after updating Supabase URL Configuration.
+This build no longer shows email-confirmation prompts in the website. If Supabase still says "Email not confirmed" during login, confirmation is still enabled in your Supabase dashboard and must be turned off there.
 
 For OAuth:
 
@@ -122,9 +122,9 @@ Do not add social providers to `VITE_SOCIAL_AUTH_PROVIDERS` until they are enabl
 - Passwords are never stored by the frontend. Supabase securely handles account credentials.
 - The "Remember this email" checkbox stores only the email address on that device. It does not store passwords.
 - Logout calls Supabase sign-out, clears old local auth fallback data, clears Supabase auth tokens from browser storage, and returns the visitor to the homepage.
-- If Supabase email confirmation is enabled, new users will see a message telling them to confirm email before logging in.
-- Signup stores the pending verification email locally so the sign-in screen can offer a resend-confirmation-email button.
-- Confirmation links are sent back to the current public site origin through Supabase Auth.
+- If Supabase email confirmation is disabled, new users can sign up, log in, and stay remembered on the device through Supabase's persisted browser session.
+- Profile photo and banner files upload to the public `nakaru-media` Supabase Storage bucket. The saved profile row stores the public image URLs so the avatar, banner, display name, username, and bio reload after logout/login.
+- If profile saving says to log in again, the browser does not have an active Supabase session yet. Log in, then save profile again.
 
 ## Run locally
 
@@ -191,7 +191,7 @@ If you are using the apex domain instead, use:
 VITE_APP_URL=https://nakaru-san.com
 ```
 
-OAuth and email confirmation now prefer the visitor's current domain automatically, but your Supabase redirect allowlist should include both domains you use.
+OAuth redirects prefer the visitor's current domain automatically, but your Supabase redirect allowlist should include both domains you use.
 
 ## IONOS + Render domain setup
 
