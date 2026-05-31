@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-05-30 - Deep search, profile-save, friend-request, and live-room visibility fix
+
+- URL search links such as `?topSearch=money_milz`, `?search=money_milz`, and `?user=money_milz` now open the Search Users page and automatically run the search.
+- Public user search and public profile list loading no longer download banner images, preventing huge saved `data:` banner rows from breaking search results.
+- Profile save now clears local `data:` image previews before writing to Supabase, so bad base64 image blobs do not keep crashing profile saves.
+- Friend request sending now shows an immediate sending/success message, confirms the inserted request row, and refreshes outgoing requests right away.
+- Creating a live room now adds the new room into the searchable live directory immediately, then refreshes Supabase data in the background.
+- Supabase schema now clears old `data:` avatar/banner values from profile rows when rerun, which fixes oversized profile records.
+
 ## 2026-05-30 - Profile save and user search stability fix
 
 - User search now queries Supabase directly by username/display name instead of only filtering the first small batch of loaded profiles.

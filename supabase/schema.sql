@@ -14,6 +14,14 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists banner_url text;
 alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
+update public.profiles
+set avatar_url = null
+where avatar_url like 'data:%';
+
+update public.profiles
+set banner_url = null
+where banner_url like 'data:%';
+
 create index if not exists profiles_username_search_idx on public.profiles (lower(username));
 create index if not exists profiles_display_name_search_idx on public.profiles (lower(display_name));
 

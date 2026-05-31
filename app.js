@@ -1,4 +1,4 @@
-﻿const version = "20260527-auth-timeout-fix";
+const version = "20260530-search-profile-save-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -181,6 +181,20 @@ function safeProfileSearch(value) {
     .slice(0, 64);
 }
 
+function readUrlSearchIntent() {
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    return safeProfileSearch(params.get("topSearch") || params.get("search") || params.get("user") || "");
+  } catch {
+    return "";
+  }
+}
+
+function cleanStoredMediaUrl(value) {
+  const text = String(value || "");
+  return isDataUrl(text) ? "" : text;
+}
+
 function hasPlaceholderSupabaseConfig() {
   const url = String(config.supabaseUrl || "").toLowerCase();
   const key = String(config.supabaseAnonKey || "").toLowerCase();
@@ -298,6 +312,7 @@ function scheduleSupabaseRetry() {
   window.setTimeout(async () => {
     if (ensureSupabaseClient()) {
       await initSupabaseSession();
+      await applyUrlSearchIntent();
       return;
     }
 
@@ -500,6 +515,13 @@ function parseYouTubeUrl(value) {
 
 async function init() {
   clearLegacyLocalAuth();
+  const initialSearch = readUrlSearchIntent();
+  if (initialSearch) {
+    state.topSearch = initialSearch;
+    state.socialSearch = initialSearch;
+    state.page = "search";
+    state.searchStatus = "Searching users...";
+  }
   render();
 
   if (!ensureSupabaseClient()) {
@@ -508,6 +530,7 @@ async function init() {
   }
 
   await initSupabaseSession();
+  await applyUrlSearchIntent();
 }
 
 async function initSupabaseSession() {
@@ -578,6 +601,14 @@ async function loadProfile() {
     }
     if (error) console.error("Profile load failed", error);
     state.profile = { id: state.user.id, ...defaultProfileForUser(), ...(data || {}) };
+    if (isDataUrl(state.profile.avatar_url)) {
+      writeLocal(`nakaru-avatar-fallback-${state.user.id}`, state.profile.avatar_url);
+      state.profile.avatar_url = readLocal(`nakaru-avatar-fallback-${state.user.id}`, "");
+    }
+    if (isDataUrl(state.profile.banner_url)) {
+      writeLocal(`nakaru-banner-fallback-${state.user.id}`, state.profile.banner_url);
+      state.profile.banner_url = readLocal(`nakaru-banner-fallback-${state.user.id}`, "");
+    }
     if (!state.profile.avatar_url) {
       state.profile.avatar_url = readLocal(`nakaru-avatar-fallback-${state.user.id}`, "");
     }
@@ -610,8 +641,8 @@ async function ensureProfileRecord(usernameHint = "") {
     username: cleanUsername(usernameHint || defaults.username, `nakaru_${suffix}`),
     display_name: defaults.display_name || cleanUsername(usernameHint || state.user.email, `nakaru_${suffix}`),
     bio: defaults.bio || "Anime and gaming fan building a new watch-party circle.",
-    avatar_url: defaults.avatar_url || "",
-    banner_url: defaults.banner_url || "",
+    avatar_url: cleanStoredMediaUrl(defaults.avatar_url),
+    banner_url: cleanStoredMediaUrl(defaults.banner_url),
     updated_at: new Date().toISOString()
   };
   if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
@@ -636,10 +667,7 @@ async function ensureProfileRecord(usernameHint = "") {
 
 async function loadPublicProfiles() {
   if (!supabaseClient) return;
-  let { data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(true)).limit(80);
-  if (error && isMissingColumnError(error, "banner_url")) {
-    ({ data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(false)).limit(80));
-  }
+  const { data, error } = await supabaseClient.from("profiles").select(profileSelectColumns(false)).limit(120);
   if (error) {
     console.error("Public profile load failed", error);
     return;
@@ -820,6 +848,9 @@ async function loadCalls() {
 
 async function loadLiveRooms() {
   if (!supabaseClient) return;
+  if (!state.publicProfiles.length) {
+    await loadPublicProfiles();
+  }
   const { data, error } = await supabaseClient
     .from("live_rooms")
     .select("id,host_id,room_name,room_url,is_active,created_at,ended_at")
@@ -1318,10 +1349,13 @@ async function saveProfile() {
     if (!activeUser) throw new Error("No active session.");
   } catch (error) {
     console.error("Profile save session check failed", error);
-    state.profileSaving = false;
-    state.profileStatus = "Please log in again, then save your profile.";
-    render();
-    return;
+    activeUser = state.user;
+    if (!activeUser?.id) {
+      state.profileSaving = false;
+      state.profileStatus = "Please log in again, then save your profile.";
+      render();
+      return;
+    }
   }
   const defaults = defaultProfileForUser(activeUser);
   const suffix = String(activeUser.id || crypto.randomUUID()).slice(0, 6);
@@ -1343,8 +1377,8 @@ async function saveProfile() {
     if (bannerIsLocalPreview) writeLocal(`nakaru-banner-fallback-${activeUser.id}`, row.banner_url);
     const dbRow = {
       ...row,
-      avatar_url: avatarIsLocalPreview ? (isDataUrl(state.savedProfile?.avatar_url) ? "" : state.savedProfile?.avatar_url || "") : row.avatar_url,
-      banner_url: bannerIsLocalPreview ? (isDataUrl(state.savedProfile?.banner_url) ? "" : state.savedProfile?.banner_url || "") : row.banner_url
+      avatar_url: avatarIsLocalPreview ? cleanStoredMediaUrl(state.savedProfile?.avatar_url) : cleanStoredMediaUrl(row.avatar_url),
+      banner_url: bannerIsLocalPreview ? cleanStoredMediaUrl(state.savedProfile?.banner_url) : cleanStoredMediaUrl(row.banner_url)
     };
     if (supabaseClient) {
       let savedData = null;
@@ -1432,7 +1466,7 @@ async function searchUsers(event) {
       const pattern = `%${state.socialSearch}%`;
       let profileQuery = supabaseClient
         .from("profiles")
-        .select(profileSelectColumns(true))
+        .select(profileSelectColumns(false))
         .or(`username.ilike.${pattern},display_name.ilike.${pattern}`)
         .order("display_name", { ascending: true })
         .limit(30);
@@ -1475,6 +1509,17 @@ async function searchUsers(event) {
   }
   state.searchStatus = state.searchResults.length ? "" : "No users found yet.";
   render();
+}
+
+async function applyUrlSearchIntent() {
+  const value = readUrlSearchIntent();
+  if (!value) return;
+  state.topSearch = value;
+  state.socialSearch = value;
+  state.page = "search";
+  state.searchStatus = "Searching users...";
+  render();
+  await searchUsers();
 }
 
 async function openUserProfile(profileId) {
@@ -1560,6 +1605,8 @@ async function sendFriendRequest(receiverId) {
     render();
     return;
   }
+  state.socialStatus = "Sending friend request...";
+  render();
   try {
     await Promise.allSettled([loadFriendRequests(), loadFriendships()]);
     if (isFriend(receiverId)) {
@@ -1575,17 +1622,25 @@ async function sendFriendRequest(receiverId) {
       return;
     }
     if (existing?.status === "declined" && existing.sender_id === state.user.id) {
-      const { error } = await supabaseClient
+      const { data, error } = await supabaseClient
         .from("friend_requests")
         .update({ status: "pending", updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
+        .eq("id", existing.id)
+        .select("id,sender_id,receiver_id,status,created_at,updated_at")
+        .single();
       if (error) throw error;
+      state.outgoingRequests = [data, ...state.outgoingRequests.filter((request) => request.id !== data.id)];
     } else {
-      const { error } = await supabaseClient.from("friend_requests").insert({ sender_id: state.user.id, receiver_id: receiverId, status: "pending" });
+      const { data, error } = await supabaseClient
+        .from("friend_requests")
+        .insert({ sender_id: state.user.id, receiver_id: receiverId, status: "pending" })
+        .select("id,sender_id,receiver_id,status,created_at,updated_at")
+        .single();
       if (error) throw error;
+      state.outgoingRequests = [data, ...state.outgoingRequests.filter((request) => request.id !== data.id)];
     }
     state.socialStatus = "Friend request sent.";
-    await loadFriendRequests();
+    await Promise.allSettled([loadFriendRequests(), loadPublicProfiles()]);
   } catch (error) {
     console.error("Friend request failed", error);
     const message = String(error?.message || "").toLowerCase();
@@ -2079,8 +2134,10 @@ async function createLiveRoom(event) {
     state.activeLiveRoom = data;
     state.callRoom = data.id;
     state.liveRoomSearch = "";
+    state.liveRooms = [data, ...state.liveRooms.filter((room) => room.id !== data.id)];
+    state.liveRoomSearchResults = state.liveRooms;
     state.liveRoomStatus = "Live room is live and searchable. Invite friends or start video.";
-    await loadLiveRooms();
+    await Promise.allSettled([loadPublicProfiles(), loadLiveRooms()]);
   } catch (error) {
     console.error("Live room create failed", error);
     state.liveRoomStatus = "Live room could not be created. Run the latest Supabase schema and confirm you are logged in.";
@@ -2094,6 +2151,7 @@ async function searchLiveRooms(event) {
   event?.preventDefault();
   const value = event ? String(new FormData(event.currentTarget).get("liveRoomSearch") || "") : state.liveRoomSearch;
   state.liveRoomSearch = value.trim();
+  await loadPublicProfiles();
   await loadLiveRooms();
   if (state.liveRoomSearch && !state.liveRoomSearchResults.length) {
     state.liveRoomStatus = "No matching live rooms are active yet.";
