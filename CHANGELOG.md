@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-05-30 - Profile save and user search stability fix
+
+- User search now queries Supabase directly by username/display name instead of only filtering the first small batch of loaded profiles.
+- Profile creation after login/signup now keeps trying to upsert the profile even if the first profile existence check fails.
+- Profile saving no longer sends huge local `data:` preview images to Supabase, which prevents save timeouts/crashes when Storage is not configured.
+- Local avatar/banner previews remain visible on the same device while Supabase Storage setup is pending.
+- Added Supabase profile search indexes and an auth trigger that creates a public profile row automatically for new email/password users.
+
 ## 2026-05-30 - Homepage merch banner sizing
 
 - Reduced the global Nakaru-San hoodie/merch banner height and changed it into a wide rectangular header-style banner across pages.

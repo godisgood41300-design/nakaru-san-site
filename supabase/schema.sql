@@ -14,6 +14,61 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists banner_url text;
 alter table public.profiles add column if not exists updated_at timestamptz not null default now();
 
+create index if not exists profiles_username_search_idx on public.profiles (lower(username));
+create index if not exists profiles_display_name_search_idx on public.profiles (lower(display_name));
+
+create or replace function public.create_profile_for_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  base_username text;
+  safe_username text;
+begin
+  base_username := coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1), 'nakaru_member');
+  safe_username := lower(regexp_replace(base_username, '[^a-zA-Z0-9_]+', '_', 'g'));
+  safe_username := trim(both '_' from safe_username);
+  if safe_username = '' or safe_username is null then
+    safe_username := 'nakaru_' || substr(new.id::text, 1, 6);
+  end if;
+
+  insert into public.profiles (id, username, display_name, bio, avatar_url, banner_url, updated_at)
+  values (
+    new.id,
+    left(safe_username, 24),
+    coalesce(new.raw_user_meta_data->>'display_name', new.raw_user_meta_data->>'name', left(safe_username, 24)),
+    'Anime and gaming fan building a new watch-party circle.',
+    coalesce(new.raw_user_meta_data->>'avatar_url', ''),
+    '',
+    now()
+  )
+  on conflict (id) do nothing;
+
+  return new;
+exception
+  when unique_violation then
+    insert into public.profiles (id, username, display_name, bio, avatar_url, banner_url, updated_at)
+    values (
+      new.id,
+      left(safe_username || '_' || substr(new.id::text, 1, 6), 31),
+      coalesce(new.raw_user_meta_data->>'display_name', new.raw_user_meta_data->>'name', left(safe_username, 24)),
+      'Anime and gaming fan building a new watch-party circle.',
+      coalesce(new.raw_user_meta_data->>'avatar_url', ''),
+      '',
+      now()
+    )
+    on conflict (id) do nothing;
+    return new;
+end;
+$$;
+
+drop trigger if exists create_profile_after_signup on auth.users;
+create trigger create_profile_after_signup
+after insert on auth.users
+for each row execute function public.create_profile_for_new_user();
+
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,

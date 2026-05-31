@@ -169,6 +169,18 @@ function validHttpUrl(value) {
   }
 }
 
+function isDataUrl(value) {
+  return String(value || "").startsWith("data:");
+}
+
+function safeProfileSearch(value) {
+  return String(value || "")
+    .trim()
+    .replace(/[%(),]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 64);
+}
+
 function hasPlaceholderSupabaseConfig() {
   const url = String(config.supabaseUrl || "").toLowerCase();
   const key = String(config.supabaseAnonKey || "").toLowerCase();
@@ -566,7 +578,10 @@ async function loadProfile() {
     }
     if (error) console.error("Profile load failed", error);
     state.profile = { id: state.user.id, ...defaultProfileForUser(), ...(data || {}) };
-    if (bannerColumnMissing && !state.profile.banner_url) {
+    if (!state.profile.avatar_url) {
+      state.profile.avatar_url = readLocal(`nakaru-avatar-fallback-${state.user.id}`, "");
+    }
+    if (!state.profile.banner_url) {
       state.profile.banner_url = readLocal(`nakaru-banner-fallback-${state.user.id}`, "");
     }
   } else {
@@ -585,7 +600,6 @@ async function ensureProfileRecord(usernameHint = "") {
   );
   if (error) {
     console.error("Profile existence check failed", error);
-    return;
   }
   if (data?.id) return;
 
@@ -1323,16 +1337,25 @@ async function saveProfile() {
   if (row.username === "nakaru_member") row.username = `nakaru_${suffix}`;
   try {
     let bannerColumnMissing = false;
+    const avatarIsLocalPreview = isDataUrl(row.avatar_url);
+    const bannerIsLocalPreview = isDataUrl(row.banner_url);
+    if (avatarIsLocalPreview) writeLocal(`nakaru-avatar-fallback-${activeUser.id}`, row.avatar_url);
+    if (bannerIsLocalPreview) writeLocal(`nakaru-banner-fallback-${activeUser.id}`, row.banner_url);
+    const dbRow = {
+      ...row,
+      avatar_url: avatarIsLocalPreview ? (isDataUrl(state.savedProfile?.avatar_url) ? "" : state.savedProfile?.avatar_url || "") : row.avatar_url,
+      banner_url: bannerIsLocalPreview ? (isDataUrl(state.savedProfile?.banner_url) ? "" : state.savedProfile?.banner_url || "") : row.banner_url
+    };
     if (supabaseClient) {
       let savedData = null;
       let { data, error } = await withTimeout(
-        supabaseClient.from("profiles").upsert(row, { onConflict: "id" }).select(profileSelectColumns(true)).single(),
+        supabaseClient.from("profiles").upsert(dbRow, { onConflict: "id" }).select(profileSelectColumns(true)).single(),
         "Profile save",
         9000
       );
       if (error && isMissingColumnError(error, "banner_url")) {
         bannerColumnMissing = true;
-        const { banner_url, ...rowWithoutBanner } = row;
+        const { banner_url, ...rowWithoutBanner } = dbRow;
         ({ data, error } = await withTimeout(
           supabaseClient.from("profiles").upsert(rowWithoutBanner, { onConflict: "id" }).select(profileSelectColumns(false)).single(),
           "Profile save retry",
@@ -1340,8 +1363,9 @@ async function saveProfile() {
         ));
       }
       if (error && String(error.message || "").toLowerCase().includes("duplicate")) {
-        row.username = `${row.username}_${suffix}`.slice(0, 31);
-        const { banner_url, ...retryRow } = row;
+        dbRow.username = `${dbRow.username}_${suffix}`.slice(0, 31);
+        row.username = dbRow.username;
+        const { banner_url, ...retryRow } = dbRow;
         ({ data, error } = await withTimeout(
           supabaseClient.from("profiles").upsert(retryRow, { onConflict: "id" }).select(profileSelectColumns(false)).single(),
           "Profile username retry",
@@ -1351,10 +1375,9 @@ async function saveProfile() {
       if (error) throw error;
       savedData = data;
       state.profile = { ...row, ...(savedData || {}) };
-      if (bannerColumnMissing) {
-        state.profile.banner_url = row.banner_url;
-        writeLocal(`nakaru-banner-fallback-${activeUser.id}`, row.banner_url || "");
-      }
+      if (avatarIsLocalPreview) state.profile.avatar_url = row.avatar_url;
+      if (bannerIsLocalPreview || bannerColumnMissing) state.profile.banner_url = row.banner_url;
+      if (bannerColumnMissing) writeLocal(`nakaru-banner-fallback-${activeUser.id}`, row.banner_url || "");
     } else {
       const profiles = readLocal("nakaru-local-profiles", {});
       profiles[state.user.id] = row;
@@ -1365,12 +1388,15 @@ async function saveProfile() {
     state.savedProfile = { ...state.profile };
     state.profileDirty = false;
     state.profileEditing = false;
-    state.profileStatus = bannerColumnMissing
+    state.profileStatus = (avatarIsLocalPreview || bannerIsLocalPreview)
+      ? "Profile text saved. Image previews are only on this device until Supabase Storage is set up."
+      : bannerColumnMissing
       ? "Profile updated, but Supabase is missing the banner_url column. Run the latest schema so banners persist after login."
       : "Profile updated successfully.";
-    if (supabaseClient && state.profile.banner_url === row.banner_url && row.banner_url.startsWith("data:")) {
+    if (supabaseClient && state.profile.banner_url === row.banner_url && isDataUrl(row.banner_url)) {
       state.profileStatus = "Profile updated, but the banner is still stored only on this device. Run the Supabase storage setup so banner images save permanently.";
     }
+    await Promise.allSettled([loadProfile(), loadPublicProfiles()]);
     setPage("profile");
   } catch (error) {
     console.error("Profile save failed", error);
@@ -1393,19 +1419,60 @@ function cancelProfile() {
 async function searchUsers(event) {
   event?.preventDefault();
   const value = event ? String(new FormData(event.currentTarget).get("search") || "") : state.socialSearch;
-  state.socialSearch = value.trim();
+  state.socialSearch = safeProfileSearch(value);
   if (!state.socialSearch) {
     state.searchResults = [];
     state.searchStatus = "Search by username or display name.";
     render();
     return;
   }
-  await loadPublicProfiles();
   const query = state.socialSearch.toLowerCase();
-  state.searchResults = state.publicProfiles
-    .filter((profile) => profile.id !== state.user?.id)
-    .filter((profile) => `${profile.username || ""} ${profile.display_name || ""}`.toLowerCase().includes(query))
-    .slice(0, 20);
+  if (supabaseClient) {
+    try {
+      const pattern = `%${state.socialSearch}%`;
+      let profileQuery = supabaseClient
+        .from("profiles")
+        .select(profileSelectColumns(true))
+        .or(`username.ilike.${pattern},display_name.ilike.${pattern}`)
+        .order("display_name", { ascending: true })
+        .limit(30);
+      if (state.user?.id) profileQuery = profileQuery.neq("id", state.user.id);
+      let { data, error } = await withTimeout(profileQuery, "User search", 7000);
+      if (error && isMissingColumnError(error, "banner_url")) {
+        profileQuery = supabaseClient
+          .from("profiles")
+          .select(profileSelectColumns(false))
+          .or(`username.ilike.${pattern},display_name.ilike.${pattern}`)
+          .order("display_name", { ascending: true })
+          .limit(30);
+        if (state.user?.id) profileQuery = profileQuery.neq("id", state.user.id);
+        ({ data, error } = await withTimeout(profileQuery, "User search retry", 7000));
+      }
+      if (error) throw error;
+      state.searchResults = data || [];
+      const merged = [...state.publicProfiles];
+      for (const profile of state.searchResults) {
+        if (!merged.some((item) => item.id === profile.id)) merged.push(profile);
+      }
+      state.publicProfiles = merged;
+    } catch (error) {
+      console.error("User search failed", error);
+      await loadPublicProfiles();
+      state.searchResults = state.publicProfiles
+        .filter((profile) => profile.id !== state.user?.id)
+        .filter((profile) => `${profile.username || ""} ${profile.display_name || ""}`.toLowerCase().includes(query))
+        .slice(0, 20);
+      state.searchStatus = state.searchResults.length ? "" : "User search is temporarily unavailable. Ask the member to save their profile, then try again.";
+      render();
+      return;
+    }
+  } else {
+    await loadPublicProfiles();
+    state.searchResults = state.publicProfiles
+      .filter((profile) => profile.id !== state.user?.id)
+      .filter((profile) => `${profile.username || ""} ${profile.display_name || ""}`.toLowerCase().includes(query))
+      .slice(0, 20);
+  }
   state.searchStatus = state.searchResults.length ? "" : "No users found yet.";
   render();
 }
