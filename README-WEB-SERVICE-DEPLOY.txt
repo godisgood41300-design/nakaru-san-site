@@ -26,8 +26,9 @@ Important:
 
 Supabase:
 - Run supabase/schema.sql in the Supabase SQL Editor after deploying this package.
-- The live database already has profiles/posts/direct_messages, but it was missing room_messages and had older column names.
-- The updated SQL adds/fixes banner_url, post_type, room_messages, and direct message sender/recipient columns.
+- The updated SQL adds/fixes profile media, posts, room messages, friend requests, friendships, direct messages, calls, live rooms, live room invites, storage policies, and Realtime publication entries.
+- Friend requests, messaging, call notifications, and searchable live rooms depend on the latest supabase/schema.sql policies being installed.
+- Audio/video calls use browser WebRTC with Supabase Realtime signaling. They work over Wi-Fi or phone data in supported browsers; some strict networks may still need a TURN or LiveKit/Daily-style relay service for guaranteed production calling.
 - Email/password signup, login, and logout use Supabase Auth only. The frontend does not save passwords or create local-only fake accounts.
 - Social login buttons stay hidden unless VITE_SOCIAL_AUTH_PROVIDERS is set, for example google,facebook, and those providers are fully enabled in Supabase Auth.
 - For email verification and social login, add these Redirect URLs in Supabase Auth:

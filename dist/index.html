@@ -1346,7 +1346,12 @@ label {
   padding: 0 1rem;
 }
 
+.live-grid.trio {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .live-stage {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 360px;
@@ -1364,6 +1369,23 @@ label {
   height: 100%;
   min-height: 360px;
   object-fit: cover;
+}
+
+.video-name {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.35rem 0.55rem;
+  overflow: hidden;
+  color: #fff7d1;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(3, 3, 7, 0.78);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 999px;
 }
 
 .remote-stage {
@@ -1387,6 +1409,16 @@ label {
   flex-wrap: wrap;
   gap: 0.7rem;
   padding: 1rem;
+}
+
+.live-now-strip {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem;
+  padding: 1rem;
+  background: rgba(124, 60, 255, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.16);
+  border-radius: 8px;
 }
 
 .inbox-layout .panel {
@@ -1569,6 +1601,7 @@ label {
   .content-layout,
   .inbox-layout,
   .live-grid,
+  .live-grid.trio,
   .video-post-layout,
   .about-section,
   .hero {
@@ -1749,7 +1782,7 @@ var supabase=function(e){function t(e,t){var r={};for(var s in e)Object.prototyp
         </section>
       </main>
     </div>
-    <script>const version = "20260530-search-profile-save-fix";
+    <script>const version = "20260531-social-live-call-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -1889,6 +1922,7 @@ const state = {
   remoteStream: null,
   peer: null,
   callChannel: null,
+  remoteParticipants: [],
   callRoom: "nakaru-lounge",
   callMode: "video",
   activeCallId: "",
@@ -1910,6 +1944,11 @@ state.savedProfile = { ...state.profile };
 let supabaseClient = null;
 let supabaseRetryCount = 0;
 let authSubscription = null;
+const peerConnections = new Map();
+const remoteStreams = new Map();
+const pendingIceCandidates = new Map();
+const offeredPeers = new Set();
+const maxLiveParticipants = 3;
 
 function validHttpUrl(value) {
   try {
@@ -2042,6 +2081,7 @@ function resetPrivateState() {
   state.notifications = [];
   state.calls = [];
   state.activeCallId = "";
+  state.remoteParticipants = [];
   state.liveRooms = [];
   state.liveRoomSearchResults = [];
   state.activeLiveRoom = null;
@@ -2212,10 +2252,25 @@ function isFriend(userId) {
   return state.friends.some((friend) => friend.id === userId) || state.friendships.some((row) => row.user_id === state.user?.id && row.friend_id === userId);
 }
 
+async function createFriendshipRows(friendId) {
+  if (!supabaseClient || !state.user || !friendId || friendId === state.user.id) return false;
+  const rows = [
+    { user_id: state.user.id, friend_id: friendId },
+    { user_id: friendId, friend_id: state.user.id }
+  ];
+  const { error } = await supabaseClient
+    .from("friendships")
+    .upsert(rows, { onConflict: "user_id,friend_id", ignoreDuplicates: true });
+  if (error) throw error;
+  await loadFriendships();
+  return true;
+}
+
 function relationTo(userId) {
   if (!state.user) return "signed-out";
   if (userId === state.user.id) return "self";
   if (isFriend(userId)) return "friend";
+  if ([...state.incomingRequests, ...state.outgoingRequests].some((request) => [request.sender_id, request.receiver_id].includes(userId) && request.status === "accepted")) return "friend";
   if (state.outgoingRequests.some((request) => request.receiver_id === userId && request.status === "pending")) return "pending-out";
   if (state.incomingRequests.some((request) => request.sender_id === userId && request.status === "pending")) return "pending-in";
   if ([...state.incomingRequests, ...state.outgoingRequests].some((request) => [request.sender_id, request.receiver_id].includes(userId) && request.status === "blocked")) return "blocked";
@@ -2423,10 +2478,30 @@ async function loadPublicProfiles() {
     console.error("Public profile load failed", error);
     return;
   }
-  state.publicProfiles = data || [];
-  if (!state.activeDmRecipient && state.user) {
-    state.activeDmRecipient = state.publicProfiles.find((profile) => profile.id !== state.user.id)?.id || "";
+  mergePublicProfiles(data || []);
+}
+
+function mergePublicProfiles(profiles = []) {
+  const map = new Map(state.publicProfiles.map((profile) => [profile.id, profile]));
+  for (const profile of profiles) {
+    if (profile?.id) map.set(profile.id, { ...(map.get(profile.id) || {}), ...profile });
   }
+  state.publicProfiles = [...map.values()];
+}
+
+async function loadProfilesByIds(ids = []) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (!supabaseClient || !uniqueIds.length) return [];
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select(profileSelectColumns(false))
+    .in("id", uniqueIds);
+  if (error) {
+    console.error("Profile lookup failed", error);
+    return [];
+  }
+  mergePublicProfiles(data || []);
+  return data || [];
 }
 
 async function loadPosts() {
@@ -2562,6 +2637,7 @@ async function loadFriendRequests() {
   const requests = data || [];
   state.incomingRequests = requests.filter((request) => request.receiver_id === state.user.id);
   state.outgoingRequests = requests.filter((request) => request.sender_id === state.user.id);
+  await loadProfilesByIds(requests.flatMap((request) => [request.sender_id, request.receiver_id]));
 }
 
 async function loadFriendships() {
@@ -2578,8 +2654,10 @@ async function loadFriendships() {
   }
   state.friendships = data || [];
   const friendIds = [...new Set(state.friendships.map((row) => row.user_id === state.user.id ? row.friend_id : row.user_id))];
+  await loadProfilesByIds(friendIds);
   state.friends = friendIds.map(profileById).filter((profile) => profile.id);
-  if (!state.activeDmRecipient && state.friends[0]) state.activeDmRecipient = state.friends[0].id;
+  const activeRecipientIsFriend = state.activeDmRecipient && friendIds.includes(state.activeDmRecipient);
+  if (!activeRecipientIsFriend) state.activeDmRecipient = state.friends[0]?.id || "";
 }
 
 async function loadCalls() {
@@ -2618,7 +2696,9 @@ async function loadLiveRooms() {
   state.liveRoomSearchResults = query
     ? state.liveRooms.filter((room) => `${room.room_name || ""} ${profileName(profileById(room.host_id))}`.toLowerCase().includes(query))
     : state.liveRooms;
-  if (!state.activeLiveRoom && state.liveRooms[0]) state.activeLiveRoom = state.liveRooms[0];
+  if (state.activeLiveRoom && !state.liveRooms.some((room) => room.id === state.activeLiveRoom?.id)) {
+    state.activeLiveRoom = null;
+  }
 }
 
 async function loadLiveRoomInvites() {
@@ -2751,6 +2831,12 @@ function setPage(page) {
   if (page === "edit-profile" && state.user) state.profileEditing = true;
   if (page === "public-rooms") loadRoomMessages(state.activeRoom).finally(render);
   if (page === "private-rooms") loadRoomMessages(state.activePrivateRoom).finally(render);
+  if (page === "feed") {
+    Promise.allSettled([
+      withTimeout(loadPublicProfiles(), "Public profiles load", 5000),
+      withTimeout(loadLiveRooms(), "Live room load", 6000)
+    ]).finally(render);
+  }
   if (page === "live") {
     Promise.allSettled([
       withTimeout(loadPublicProfiles(), "Public profiles load", 5000),
@@ -2763,8 +2849,11 @@ function setPage(page) {
   if (["friends", "friend-requests", "messages", "calls", "inbox"].includes(page) || (page === "live" && state.user)) {
     withTimeout(loadSocialData(), "Social data load", 6000).finally(render);
   }
+  if (page === "friend-requests") {
+    Promise.allSettled([loadPublicProfiles(), loadFriendRequests(), loadFriendships()]).finally(render);
+  }
   if (page === "messages" || page === "inbox") {
-    withTimeout(loadPublicProfiles(), "Public profiles load", 5000)
+    Promise.allSettled([loadPublicProfiles(), loadFriendships()])
       .then(loadDirectMessages)
       .finally(render);
   }
@@ -3372,6 +3461,14 @@ async function sendFriendRequest(receiverId) {
       render();
       return;
     }
+    if (existing?.status === "accepted") {
+      await createFriendshipRows(receiverId);
+      state.socialStatus = "You are friends now. Messaging is available.";
+      state.activeDmRecipient = receiverId;
+      await Promise.allSettled([loadFriendRequests(), loadFriendships(), loadPublicProfiles()]);
+      render();
+      return;
+    }
     if (existing?.status === "declined" && existing.sender_id === state.user.id) {
       const { data, error } = await supabaseClient
         .from("friend_requests")
@@ -3410,14 +3507,8 @@ async function respondFriendRequest(requestId, status) {
     const { error } = await supabaseClient.from("friend_requests").update({ status, updated_at: new Date().toISOString() }).eq("id", requestId);
     if (error) throw error;
     if (status === "accepted") {
-      const rows = [
-        { user_id: state.user.id, friend_id: request.sender_id },
-        { user_id: request.sender_id, friend_id: state.user.id }
-      ];
-      const { error: friendError } = await supabaseClient
-        .from("friendships")
-        .upsert(rows, { onConflict: "user_id,friend_id", ignoreDuplicates: true });
-      if (friendError) throw friendError;
+      await createFriendshipRows(request.sender_id);
+      state.activeDmRecipient = request.sender_id;
       state.socialStatus = "Friend request accepted.";
     } else {
       state.socialStatus = `Friend request ${status}.`;
@@ -3432,6 +3523,14 @@ async function respondFriendRequest(requestId, status) {
 }
 
 async function messageFriend(friendId) {
+  const acceptedRequest = [...state.incomingRequests, ...state.outgoingRequests].find((request) => [request.sender_id, request.receiver_id].includes(friendId) && request.status === "accepted");
+  if (!isFriend(friendId) && acceptedRequest) {
+    try {
+      await createFriendshipRows(friendId);
+    } catch (error) {
+      console.error("Friendship repair before messaging failed", error);
+    }
+  }
   if (!isFriend(friendId)) {
     state.dmStatus = "You can message this user after you become friends.";
     render();
@@ -3876,6 +3975,11 @@ async function createLiveRoom(event) {
   state.liveRoomStatus = "Creating live room...";
   render();
   try {
+    await supabaseClient
+      .from("live_rooms")
+      .update({ is_active: false, ended_at: new Date().toISOString() })
+      .eq("host_id", activeUser.id)
+      .eq("is_active", true);
     const { data, error } = await withTimeout(supabaseClient
       .from("live_rooms")
       .insert({ host_id: activeUser.id, room_name: roomName, room_url: `${redirectUrl()}#live`, is_active: true })
@@ -3980,6 +4084,8 @@ async function acceptLiveInvite(inviteId) {
   try {
     const { error } = await supabaseClient.from("live_room_invites").update({ status: "accepted" }).eq("id", inviteId);
     if (error) throw error;
+    await loadLiveRooms();
+    state.activeLiveRoom = state.liveRooms.find((room) => room.id === invite.room_id) || state.activeLiveRoom;
     state.callRoom = invite.room_id;
     state.page = "live";
     state.liveRoomStatus = "Live invite accepted. Joining room...";
@@ -4010,52 +4116,140 @@ function callRoomId() {
   return cleanUsername(state.callRoom || "nakaru-lounge", "nakaru_lounge");
 }
 
+function currentCallProfile() {
+  return {
+    user_id: state.user?.id || "",
+    display_name: state.profile.display_name || state.profile.username || "Nakaru Member",
+    username: state.profile.username || "",
+    avatar_url: state.profile.avatar_url || ""
+  };
+}
+
+function updateRemoteParticipantsFromPresence() {
+  const presenceState = state.callChannel?.presenceState?.() || {};
+  const seen = new Set();
+  const participants = [];
+  for (const [key, entries] of Object.entries(presenceState)) {
+    const list = Array.isArray(entries) ? entries : [entries];
+    for (const entry of list) {
+      const id = entry?.user_id || key;
+      if (!id || id === state.user?.id || seen.has(id)) continue;
+      seen.add(id);
+      participants.push({
+        id,
+        username: entry?.username || profileById(id).username || "member",
+        display_name: entry?.display_name || profileName(profileById(id)),
+        avatar_url: entry?.avatar_url || profileById(id).avatar_url || ""
+      });
+    }
+  }
+  for (const id of remoteStreams.keys()) {
+    if (id === state.user?.id || seen.has(id)) continue;
+    seen.add(id);
+    const profile = profileById(id);
+    participants.push({
+      id,
+      username: profile.username || "member",
+      display_name: profileName(profile),
+      avatar_url: profile.avatar_url || ""
+    });
+  }
+  state.remoteParticipants = participants.slice(0, maxLiveParticipants - 1);
+  state.remoteStream = remoteStreams.values().next().value || null;
+  return state.remoteParticipants;
+}
+
 function attachMediaStreams() {
   const localVideo = document.querySelector("#live-video");
   const remoteVideo = document.querySelector("#remote-video");
   if (localVideo && state.stream) localVideo.srcObject = state.stream;
   if (remoteVideo && state.remoteStream) remoteVideo.srcObject = state.remoteStream;
+  document.querySelectorAll("[data-remote-video]").forEach((video) => {
+    const peerId = video.dataset.remoteVideo || "";
+    const stream = remoteStreams.get(peerId);
+    if (stream && video.srcObject !== stream) video.srcObject = stream;
+  });
 }
 
-function createPeerConnection() {
+function createPeerConnection(remoteUserId) {
   const peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-  state.remoteStream = new MediaStream();
   peer.ontrack = (event) => {
-    event.streams[0]?.getTracks().forEach((track) => state.remoteStream.addTrack(track));
-    state.callStatus = "Connected to the other user.";
+    const stream = remoteStreams.get(remoteUserId) || new MediaStream();
+    event.streams[0]?.getTracks().forEach((track) => {
+      if (!stream.getTracks().some((existing) => existing.id === track.id)) stream.addTrack(track);
+    });
+    remoteStreams.set(remoteUserId, stream);
+    updateRemoteParticipantsFromPresence();
+    state.callStatus = "Connected.";
     render();
+    attachMediaStreams();
   };
   peer.onicecandidate = (event) => {
-    if (event.candidate) sendCallSignal({ type: "ice", candidate: event.candidate });
+    if (event.candidate) sendCallSignal({ type: "ice", candidate: event.candidate }, remoteUserId);
+  };
+  peer.onconnectionstatechange = () => {
+    if (["failed", "closed", "disconnected"].includes(peer.connectionState)) {
+      remoteStreams.delete(remoteUserId);
+      peerConnections.delete(remoteUserId);
+      offeredPeers.delete(remoteUserId);
+      updateRemoteParticipantsFromPresence();
+      render();
+      attachMediaStreams();
+    }
   };
   return peer;
 }
 
-async function sendCallSignal(payload) {
+async function getPeerConnection(remoteUserId) {
+  if (!remoteUserId || remoteUserId === state.user?.id) return null;
+  if (peerConnections.has(remoteUserId)) return peerConnections.get(remoteUserId);
+  if (peerConnections.size >= maxLiveParticipants - 1) {
+    state.callStatus = "This room is full. Nakaru-San supports up to 3 cameras in this build.";
+    return null;
+  }
+  const peer = createPeerConnection(remoteUserId);
+  peerConnections.set(remoteUserId, peer);
+  state.peer = peer;
+  state.stream?.getTracks().forEach((track) => peer.addTrack(track, state.stream));
+  return peer;
+}
+
+async function sendCallSignal(payload, to = "all") {
   if (!state.callChannel || !state.user) return;
   await state.callChannel.send({
     type: "broadcast",
     event: "signal",
-    payload: { ...payload, from: state.user.id, room: callRoomId() }
+    payload: { ...payload, from: state.user.id, to, room: callRoomId() }
   });
 }
 
 async function handleCallSignal(payload) {
-  if (!payload || payload.from === state.user?.id || payload.room !== callRoomId() || !state.peer) return;
+  if (!payload || payload.from === state.user?.id || payload.room !== callRoomId()) return;
+  if (payload.to && payload.to !== "all" && payload.to !== state.user?.id) return;
+  const peer = await getPeerConnection(payload.from);
+  if (!peer) return;
   try {
     if (payload.type === "offer") {
-      await state.peer.setRemoteDescription(new RTCSessionDescription(payload.offer));
-      const answer = await state.peer.createAnswer();
-      await state.peer.setLocalDescription(answer);
-      await sendCallSignal({ type: "answer", answer });
+      await peer.setRemoteDescription(new RTCSessionDescription(payload.offer));
+      await flushPendingIce(payload.from, peer);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      await sendCallSignal({ type: "answer", answer }, payload.from);
       state.callStatus = "Answer sent. Connecting...";
     }
     if (payload.type === "answer") {
-      await state.peer.setRemoteDescription(new RTCSessionDescription(payload.answer));
+      if (peer.signalingState !== "stable") await peer.setRemoteDescription(new RTCSessionDescription(payload.answer));
+      await flushPendingIce(payload.from, peer);
       state.callStatus = "Answer received. Connecting...";
     }
     if (payload.type === "ice" && payload.candidate) {
-      await state.peer.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      if (peer.remoteDescription) {
+        await peer.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      } else {
+        const list = pendingIceCandidates.get(payload.from) || [];
+        list.push(payload.candidate);
+        pendingIceCandidates.set(payload.from, list);
+      }
     }
   } catch (error) {
     console.error("Call signal failed", error);
@@ -4063,6 +4257,55 @@ async function handleCallSignal(payload) {
   } finally {
     render();
   }
+}
+
+async function flushPendingIce(remoteUserId, peer) {
+  const list = pendingIceCandidates.get(remoteUserId) || [];
+  pendingIceCandidates.delete(remoteUserId);
+  for (const candidate of list) {
+    try {
+      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+      console.warn("Queued ICE candidate failed", error);
+    }
+  }
+}
+
+async function createOfferFor(remoteUserId) {
+  if (offeredPeers.has(remoteUserId)) return;
+  const peer = await getPeerConnection(remoteUserId);
+  if (!peer || peer.signalingState !== "stable") return;
+  offeredPeers.add(remoteUserId);
+  const offer = await peer.createOffer();
+  await peer.setLocalDescription(offer);
+  await sendCallSignal({ type: "offer", offer }, remoteUserId);
+}
+
+async function handleCallPresenceSync() {
+  if (!state.callChannel || !state.user || !state.stream) return;
+  const participants = updateRemoteParticipantsFromPresence();
+  const activeIds = new Set(participants.map((participant) => participant.id));
+  for (const id of peerConnections.keys()) {
+    if (!activeIds.has(id)) {
+      peerConnections.get(id)?.close();
+      peerConnections.delete(id);
+      remoteStreams.delete(id);
+      offeredPeers.delete(id);
+    }
+  }
+  const joinable = participants.slice(0, maxLiveParticipants - 1);
+  for (const participant of joinable) {
+    if (String(state.user.id) < String(participant.id)) {
+      await createOfferFor(participant.id);
+    } else {
+      await getPeerConnection(participant.id);
+    }
+  }
+  state.callStatus = joinable.length
+    ? `Connected room with ${joinable.length + 1} participant${joinable.length ? "s" : ""}.`
+    : "You are live. Waiting for others to join.";
+  render();
+  attachMediaStreams();
 }
 
 async function connectCall(mode = "video", isCaller = false) {
@@ -4089,25 +4332,20 @@ async function connectCall(mode = "video", isCaller = false) {
   render();
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({ video: mode === "video", audio: true });
-    state.peer = createPeerConnection();
-    state.stream.getTracks().forEach((track) => state.peer.addTrack(track, state.stream));
-    state.callChannel = supabaseClient.channel(`nakaru-call-${callRoomId()}`, { config: { broadcast: { self: false } } });
+    state.callChannel = supabaseClient.channel(`nakaru-call-${callRoomId()}`, { config: { broadcast: { self: false }, presence: { key: state.user.id } } });
     state.callChannel.on("broadcast", { event: "signal" }, ({ payload }) => handleCallSignal(payload));
+    state.callChannel.on("presence", { event: "sync" }, () => handleCallPresenceSync());
+    state.callChannel.on("presence", { event: "leave" }, () => handleCallPresenceSync());
     await new Promise((resolve, reject) => {
       state.callChannel.subscribe((status) => {
         if (status === "SUBSCRIBED") resolve();
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") reject(new Error(status));
       });
     });
+    await state.callChannel.track(currentCallProfile());
     state.inCall = true;
-    if (isCaller) {
-      const offer = await state.peer.createOffer();
-      await state.peer.setLocalDescription(offer);
-      await sendCallSignal({ type: "offer", offer });
-      state.callStatus = "Call room started. Have the other user join the same room.";
-    } else {
-      state.callStatus = "Joined. Waiting for the caller to connect.";
-    }
+    state.callStatus = isCaller ? "Live room started. Waiting for others to join." : "Joined. Connecting to the room...";
+    await handleCallPresenceSync();
   } catch (error) {
     console.error("Call setup failed", error);
     state.callStatus = "Call could not start. Check camera/microphone permission and try again.";
@@ -4120,7 +4358,7 @@ async function connectCall(mode = "video", isCaller = false) {
 }
 
 async function startCall(mode = "video") {
-  if (state.page === "live" && !state.activeLiveRoom) {
+  if (state.page === "live" && (!state.activeLiveRoom || state.activeLiveRoom.host_id !== state.user?.id)) {
     await createLiveRoom();
     if (!state.activeLiveRoom) return;
   }
@@ -4147,8 +4385,15 @@ async function stopCamera(shouldRender = true) {
   state.stream?.getTracks().forEach((track) => track.stop());
   state.remoteStream?.getTracks().forEach((track) => track.stop());
   state.peer?.close();
+  for (const peer of peerConnections.values()) peer.close();
+  peerConnections.clear();
+  remoteStreams.forEach((stream) => stream.getTracks().forEach((track) => track.stop()));
+  remoteStreams.clear();
+  pendingIceCandidates.clear();
+  offeredPeers.clear();
   if (state.callChannel && supabaseClient) {
     try {
+      await state.callChannel.untrack?.();
       await withTimeout(supabaseClient.removeChannel(state.callChannel), "Call cleanup", 2500);
     } catch (error) {
       console.warn("Call cleanup timed out", error);
@@ -4158,6 +4403,7 @@ async function stopCamera(shouldRender = true) {
   state.remoteStream = null;
   state.peer = null;
   state.callChannel = null;
+  state.remoteParticipants = [];
   state.inCall = false;
   if (shouldRender) state.callStatus = "Call ended.";
   if (shouldRender) render();
@@ -4351,6 +4597,25 @@ function renderDmBubble(message = {}) {
   `;
 }
 
+function renderLiveVideoGrid(context = "live") {
+  const remoteSlots = state.remoteParticipants.slice(0, maxLiveParticipants - 1);
+  while (remoteSlots.length < maxLiveParticipants - 1) {
+    remoteSlots.push(null);
+  }
+  const localLabel = state.user ? profileName({ ...state.profile, id: state.user.id }) : "You";
+  return `
+    <div class="live-grid trio">
+      <div class="live-stage">
+        ${state.stream ? `<video id="live-video" autoplay muted playsinline></video><span class="video-name">${escapeHtml(localLabel)} ${context === "live" ? "(host/local)" : "(you)"}</span>` : `<div><strong>Your camera preview appears here.</strong><span>${context === "live" ? "Create or join a room to connect with up to 3 people." : "Start or accept a call to connect."}</span></div>`}
+      </div>
+      ${remoteSlots.map((participant, index) => participant?.id
+        ? `<div class="live-stage remote-stage"><video data-remote-video="${escapeHtml(participant.id)}" autoplay playsinline></video><span class="video-name">${escapeHtml(profileName(participant))}</span></div>`
+        : `<div class="live-stage remote-stage"><div><strong>${context === "live" ? `Guest ${index + 1}` : "Friend video"}</strong><span>${context === "live" ? "Waiting for someone to join this live room." : "Your friend appears here after they accept and connect."}</span></div></div>`
+      ).join("")}
+    </div>
+  `;
+}
+
 function liveRoomCard(room = {}) {
   const host = profileById(room.host_id);
   const isHost = room.host_id === state.user?.id;
@@ -4359,7 +4624,7 @@ function liveRoomCard(room = {}) {
       <div>
         <h3>${escapeHtml(room.room_name || "Nakaru Live Room")}</h3>
         <p>Hosted by ${host.id ? `<button class="inline-profile-link" onclick="openUserProfile('${host.id}')" type="button">${escapeHtml(profileName(host))}</button>` : escapeHtml(profileName(host))}</p>
-        <span>${isHost ? "Your live room" : "Open live room"} · ${formatTime(room.created_at)}</span>
+        <span>${isHost ? "Your live room" : "Open live room"} - ${formatTime(room.created_at)}</span>
       </div>
       <div class="user-card-actions">
         <button class="primary-action" ${state.liveRoomJoining === room.id ? "disabled" : ""} onclick="joinLiveRoom('${room.id}', 'video')" type="button">${state.liveRoomJoining === room.id ? "Joining..." : "Join Video"}</button>
@@ -4367,6 +4632,16 @@ function liveRoomCard(room = {}) {
         ${isHost ? `<button class="ghost-action" onclick="endLiveRoom('${room.id}')" type="button">End Room</button>` : ""}
       </div>
     </article>
+  `;
+}
+
+function renderLiveNowStrip() {
+  const rooms = state.liveRooms.slice(0, 4);
+  return `
+    <section class="live-now-strip">
+      <div class="panel-title inline"><div><span class="eyebrow">Live now</span><h2>Join active live rooms</h2></div><button class="ghost-action" onclick="setPage('golive')" type="button">Open Live Directory</button></div>
+      <div class="user-card-list">${rooms.length ? rooms.map(liveRoomCard).join("") : `<p class="empty-state">No one is live yet. Start a room from GoLive.</p>`}</div>
+    </section>
   `;
 }
 
@@ -4378,6 +4653,7 @@ function renderPage() {
     <main class="content-layout">
       <section class="panel">
         <div class="panel-title inline"><div><span class="eyebrow">Public live feed</span><h2>Anime and gaming posts</h2></div><button class="primary-action" onclick="setPage('video')" type="button">Post Video</button></div>
+        ${renderLiveNowStrip()}
         <form class="composer" onsubmit="createTextPost(event)">${avatar(state.profile)}<input placeholder="Share an anime theory, gaming update, or watch-party plan" /><button class="primary-action" type="submit">Post</button></form>
         ${state.postStatus ? `<p class="status-text">${escapeHtml(state.postStatus)}</p>` : ""}
         <div class="feed-list">${state.posts.map(renderPost).join("")}</div>
@@ -4437,22 +4713,21 @@ function renderPage() {
   if (state.page === "golive" || state.page === "live") {
     const liveRooms = state.liveRoomSearch ? state.liveRoomSearchResults : state.liveRooms;
     const pendingInvites = state.liveRoomInvites.filter((invite) => invite.receiver_id === state.user?.id && invite.status === "pending");
+    const ownedLiveRoom = state.activeLiveRoom?.host_id === state.user?.id ? state.activeLiveRoom : null;
+    const liveRoomNameValue = ownedLiveRoom?.room_name || (state.callRoom && !state.callRoom.startsWith("call_") && state.callRoom !== "nakaru-lounge" ? state.callRoom : "Nakaru Lounge");
     return `
       <main class="content-layout">
         <section class="panel live-panel">
           <div class="panel-title"><span class="eyebrow">GoLive</span><h2>Searchable live rooms</h2></div>
           <form class="form-grid compact-form" onsubmit="createLiveRoom(event)">
-            <label>Live room name<input name="roomName" value="${escapeHtml(state.activeLiveRoom?.room_name || state.callRoom)}" oninput="state.callRoom=this.value" placeholder="Nakaru Lounge" /></label>
+            <label>Live room name<input name="roomName" value="${escapeHtml(liveRoomNameValue)}" oninput="state.callRoom=this.value" placeholder="Nakaru Lounge" /></label>
             <button class="primary-action" ${state.liveRoomCreating ? "disabled" : ""} type="submit">${state.liveRoomCreating ? "Creating..." : "Create Searchable Live Room"}</button>
           </form>
           <form class="form-grid compact-form" onsubmit="searchLiveRooms(event)">
             <label>Search live rooms<input name="liveRoomSearch" value="${escapeHtml(state.liveRoomSearch)}" placeholder="Search by room or host" /></label>
             <button class="ghost-action" type="submit">Search Rooms</button>
           </form>
-          <div class="live-grid">
-            <div class="live-stage">${state.stream ? `<video id="live-video" autoplay muted playsinline></video>` : `<div><strong>Your camera preview appears here.</strong><span>Create or join a room to connect over Wi-Fi, phone data, or any internet connection.</span></div>`}</div>
-            <div class="live-stage remote-stage">${state.remoteStream ? `<video id="remote-video" autoplay playsinline></video>` : `<div><strong>Remote user</strong><span>The other user appears here after joining the same live room.</span></div>`}</div>
-          </div>
+          ${renderLiveVideoGrid("live")}
           <div class="hero-actions">
             <button class="primary-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('video')" type="button">Go Live Video</button>
             <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('audio')" type="button">Go Live Audio</button>
@@ -4485,7 +4760,7 @@ function renderPage() {
         <section class="panel">
           <div class="panel-title"><span class="eyebrow">Friend requests</span><h2>Incoming requests</h2></div>
           <div class="user-card-list">${incomingPending.length ? incomingPending.map((request) => {
-            const profile = state.publicProfiles.find((item) => item.id === request.sender_id) || { id: request.sender_id, username: "member", display_name: "Nakaru Member" };
+            const profile = profileById(request.sender_id) || { id: request.sender_id, username: "member", display_name: "Nakaru Member" };
             return userCard(profile, `<button class="primary-action" onclick="respondFriendRequest('${request.id}', 'accepted')" type="button">Accept</button><button class="ghost-action" onclick="respondFriendRequest('${request.id}', 'declined')" type="button">Decline</button>`);
           }).join("") : `<p class="empty-state">No incoming friend requests yet.</p>`}</div>
           ${state.socialStatus ? `<p class="status-text">${escapeHtml(state.socialStatus)}</p>` : ""}
@@ -4493,7 +4768,7 @@ function renderPage() {
         <aside class="panel sidebar-panel">
           <div class="panel-title"><span class="eyebrow">Pending</span><h2>Sent requests</h2></div>
           <div class="user-card-list">${outgoingPending.length ? outgoingPending.map((request) => {
-            const profile = state.publicProfiles.find((item) => item.id === request.receiver_id) || { id: request.receiver_id, username: "member", display_name: "Nakaru Member" };
+            const profile = profileById(request.receiver_id) || { id: request.receiver_id, username: "member", display_name: "Nakaru Member" };
             return userCard(profile, `<button class="ghost-action" type="button" disabled>Pending</button>`);
           }).join("") : `<p class="empty-state">No outgoing requests.</p>`}</div>
         </aside>
@@ -4507,10 +4782,7 @@ function renderPage() {
         <section class="panel live-panel">
           <div class="panel-title"><span class="eyebrow">Internet calls</span><h2>Audio and video calls</h2></div>
           <p class="muted">Nakaru-San calls use your internet connection through WebRTC, so they work over Wi-Fi, phone data, or any active browser connection. No phone line is required.</p>
-          <div class="live-grid">
-            <div class="live-stage">${state.stream ? `<video id="live-video" autoplay muted playsinline></video>` : `<div><strong>Your camera preview appears here.</strong><span>Start or accept a call to connect.</span></div>`}</div>
-            <div class="live-stage remote-stage">${state.remoteStream ? `<video id="remote-video" autoplay playsinline></video>` : `<div><strong>Friend video</strong><span>Your friend appears here after they accept and connect.</span></div>`}</div>
-          </div>
+          ${renderLiveVideoGrid("call")}
           <div class="hero-actions">
             <button class="ghost-action" onclick="endActiveCall()" type="button">End Call</button>
           </div>
@@ -4533,19 +4805,19 @@ function renderPage() {
     `;
   }
   if (state.page === "inbox" || state.page === "messages") {
-    const messageTargets = state.publicProfiles.filter((profile) => profile.id !== state.user?.id);
-    const activeRecipient = state.publicProfiles.find((profile) => profile.id === state.activeDmRecipient);
-    const dmMessages = state.activeDmRecipient ? state.dmMessages : activeThread.messages.map((message) => ({ ...message, sender_id: message.fromMe ? state.user?.id : "demo", recipient_id: state.user?.id, created_at: new Date().toISOString() }));
+    const messageTargets = state.friends.filter((profile) => profile.id !== state.user?.id);
+    const activeRecipient = state.friends.find((profile) => profile.id === state.activeDmRecipient);
+    const dmMessages = activeRecipient?.id ? state.dmMessages : [];
     return `
       <main class="inbox-layout">
         <section class="panel thread-list">
           <div class="panel-title"><span class="eyebrow">Messaging inbox</span><h2>Direct messages</h2></div>
-          ${messageTargets.length ? messageTargets.map((profile) => `<div class="thread ${profile.id === state.activeDmRecipient ? "active" : ""}">${profileIdentityButton(profile)}<button class="ghost-action" onclick="setDmRecipient('${profile.id}')" type="button">Chat</button></div>`).join("") : state.threads.map((thread) => `<button class="thread ${thread.id === state.activeThread ? "active" : ""}" onclick="state.activeThread='${thread.id}'; render()" type="button">${avatar({ display_name: thread.user })}<span><strong>${escapeHtml(thread.user)}</strong><small>${escapeHtml(thread.preview)}</small></span></button>`).join("")}
+          ${messageTargets.length ? messageTargets.map((profile) => `<div class="thread ${profile.id === state.activeDmRecipient ? "active" : ""}">${profileIdentityButton(profile)}<button class="ghost-action" onclick="setDmRecipient('${profile.id}')" type="button">Chat</button></div>`).join("") : `<p class="empty-state">Accepted friends will appear here. Send or accept a friend request first.</p>`}
         </section>
         <section class="panel dm-panel">
-          <div class="panel-title"><span class="eyebrow">Conversation</span><h2>${activeRecipient?.id ? `<button class="inline-profile-link" onclick="openUserProfile('${activeRecipient.id}')" type="button">${escapeHtml(activeRecipient.display_name || activeRecipient.username)}</button>` : escapeHtml(activeThread.user)}</h2></div>
+          <div class="panel-title"><span class="eyebrow">Conversation</span><h2>${activeRecipient?.id ? `<button class="inline-profile-link" onclick="openUserProfile('${activeRecipient.id}')" type="button">${escapeHtml(activeRecipient.display_name || activeRecipient.username)}</button>` : "Choose a friend"}</h2></div>
           <div class="dm-window">${dmMessages.map(renderDmBubble).join("")}</div>
-          <form class="message-form media-message-form" onsubmit="sendDm(event)"><input placeholder="Message ${escapeHtml(activeRecipient?.display_name || activeThread.user)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>
+          ${activeRecipient?.id ? `<form class="message-form media-message-form" onsubmit="sendDm(event)"><input placeholder="Message ${escapeHtml(activeRecipient.display_name || activeRecipient.username)}" /><label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label><button class="primary-action" type="submit">Send</button></form>` : `<p class="empty-state">Accept a friend request or choose a friend before sending private messages.</p>`}
           ${state.dmStatus ? `<p class="status-text">${escapeHtml(state.dmStatus)}</p>` : ""}
         </section>
       </main>
@@ -4627,6 +4899,7 @@ function renderMerchBanner() {
 function render() {
   window.NAKARU_BOOT_RENDERED = true;
   const warnings = visibleBootWarnings();
+  const pendingRequestCount = state.incomingRequests.filter((request) => request.status === "pending").length;
   const nav = [
     ["home", "Home"],
     ["feed", "Live Feed"],
@@ -4638,7 +4911,7 @@ function render() {
     ["golive", "GoLive"],
     ["messages", "Messaging"],
     ["calls", "Calls"],
-    ["friend-requests", "Requests"],
+    ["friend-requests", pendingRequestCount ? `Requests (${pendingRequestCount})` : "Requests"],
     ["inbox", "Inbox"]
   ];
   document.getElementById("app").innerHTML = `

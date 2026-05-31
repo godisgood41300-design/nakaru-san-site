@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-05-31 - Friend requests, messaging, calls, and live-room reliability pass
+
+- Fixed a messaging state bug where a random public profile could be selected as the active DM target before accepted friends finished loading.
+- Messaging now only opens a conversation for accepted friends and shows a clean empty state when no friend is selected.
+- Friend request inbox cards now use the direct profile lookup helper, so incoming and outgoing requests still show clickable member profiles even if the first public profile batch missed that user.
+- Accepting a friend request now repairs/creates the friendship rows needed for both users to message and call each other.
+- Live Feed now includes a "Live now" strip so active searchable rooms are visible outside the GoLive page.
+- GoLive no longer auto-selects somebody else's active room as your current room; starting your own live session creates/uses your own active room.
+- Live room video/call setup now uses Supabase Realtime presence and WebRTC peer connections for up to three visible participants in one room.
+
 ## 2026-05-30 - Deep search, profile-save, friend-request, and live-room visibility fix
 
 - URL search links such as `?topSearch=money_milz`, `?search=money_milz`, and `?user=money_milz` now open the Search Users page and automatically run the search.

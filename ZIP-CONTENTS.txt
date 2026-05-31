@@ -16,6 +16,7 @@ index.html
 nakaru-hoodies-banner.png
 nakaru-san-logo.png
 package.json
+PACKAGE-README.txt
 public
 public\nakaru-hoodies-banner.png
 public\nakaru-san-logo.png

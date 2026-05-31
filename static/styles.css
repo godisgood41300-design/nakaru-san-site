@@ -1339,7 +1339,12 @@ label {
   padding: 0 1rem;
 }
 
+.live-grid.trio {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .live-stage {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 360px;
@@ -1357,6 +1362,23 @@ label {
   height: 100%;
   min-height: 360px;
   object-fit: cover;
+}
+
+.video-name {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.35rem 0.55rem;
+  overflow: hidden;
+  color: #fff7d1;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(3, 3, 7, 0.78);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 999px;
 }
 
 .remote-stage {
@@ -1380,6 +1402,16 @@ label {
   flex-wrap: wrap;
   gap: 0.7rem;
   padding: 1rem;
+}
+
+.live-now-strip {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem;
+  padding: 1rem;
+  background: rgba(124, 60, 255, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.16);
+  border-radius: 8px;
 }
 
 .inbox-layout .panel {
@@ -1562,6 +1594,7 @@ label {
   .content-layout,
   .inbox-layout,
   .live-grid,
+  .live-grid.trio,
   .video-post-layout,
   .about-section,
   .hero {
