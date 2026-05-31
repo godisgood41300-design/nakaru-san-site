@@ -489,12 +489,20 @@ label {
 }
 
 .sidebar-cta {
+  display: grid;
+  gap: 0.7rem;
   padding-top: 1rem;
   border-top: 1px solid var(--line);
 }
 
 .sidebar-cta .primary-action {
   width: 100%;
+}
+
+.install-hint {
+  display: block;
+  color: #d7dbea;
+  line-height: 1.45;
 }
 
 .topbar nav {

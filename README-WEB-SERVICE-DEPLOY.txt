@@ -23,6 +23,7 @@ Important:
 - For the existing Render service at https://nakaru-san-site-1.onrender.com/, connect the new GitHub repo or update the existing repo files.
 - In Render, use Manual Deploy -> Clear build cache & deploy after changing files.
 - The Start Command must be npm start. If Render asks for a Publish Directory, you are in Static Site mode instead of Web Service mode.
+- Nakaru-San is now installable as a phone app/PWA. After deployment, iPhone users install from Safari Share -> Add to Home Screen. Android users install from Chrome menu -> Install app. The sidebar Install App button also helps where browser install prompts are supported.
 
 Supabase:
 - Run supabase/schema.sql in the Supabase SQL Editor after deploying this package.

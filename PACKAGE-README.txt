@@ -1,10 +1,11 @@
-﻿NAKARU-SAN DRAGON BACKGROUND PACKAGE
+﻿NAKARU-SAN INSTALLABLE APP / PWA PACKAGE
 
 What changed:
-- Added a subtle purple, black, and gold animated canvas dragon behind the website.
-- The dragon is pointer-events disabled so it does not block any buttons, forms, chats, calls, or profile controls.
-- The effect sits behind content and respects reduced-motion preferences.
-- Cache-busting was updated to 20260531-dragon-background.
+- Nakaru-San can now be installed on phones as a Progressive Web App.
+- Added manifest.webmanifest, service-worker.js, offline.html, and app icon files.
+- Added an Install App button inside the logo sidebar.
+- iPhone users install from Safari Share -> Add to Home Screen.
+- Android users install from Chrome menu -> Install app, or the sidebar button when available.
 
 Render Web Service settings:
 Build Command: npm run build

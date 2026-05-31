@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-05-31 - Installable phone app / PWA support
+
+- Added a Progressive Web App manifest so Nakaru-San can be installed to iPhone and Android home screens.
+- Added generated Nakaru-San app icons, maskable Android icons, and an Apple touch icon.
+- Added a service worker with a cached app shell and offline fallback page.
+- Added an Install App action to the logo sidebar with Android/Chrome install prompt support and iPhone install instructions.
+- Updated build output so `manifest.webmanifest`, `service-worker.js`, `offline.html`, and icon files are copied into `dist/` and the root deployment files.
+- Updated the web service MIME/cache headers for `manifest.webmanifest` and `service-worker.js`.
+- Updated cache-busting to `20260531-pwa-install`.
+
 ## 2026-05-31 - Subtle animated dragon background
 
 - Added a purple, black, and gold canvas dragon that swirls behind the Nakaru-San website without blocking clicks.

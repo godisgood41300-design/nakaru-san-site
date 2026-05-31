@@ -1,4 +1,4 @@
-const version = "20260531-dragon-background";
+const version = "20260531-pwa-install";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -153,7 +153,9 @@ const state = {
   liveRoomInvites: [],
   liveRoomStatus: "",
   liveRoomCreating: false,
-  liveRoomJoining: ""
+  liveRoomJoining: "",
+  installAvailable: false,
+  installStatus: ""
 };
 state.savedProfile = { ...state.profile };
 
@@ -169,6 +171,7 @@ let dragonCanvas = null;
 let dragonContext = null;
 let dragonAnimationStarted = false;
 let dragonReducedMotion = false;
+let deferredInstallPrompt = null;
 
 function validHttpUrl(value) {
   try {
@@ -539,6 +542,68 @@ function parseYouTubeUrl(value) {
   }
 }
 
+function isStandaloneApp() {
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (!window.isSecureContext && !["localhost", "127.0.0.1"].includes(window.location.hostname)) return;
+  const register = () => {
+    navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+      console.warn("Nakaru-San service worker registration failed", error);
+    });
+  };
+  if (document.readyState === "complete") {
+    register();
+  } else {
+    window.addEventListener("load", register, { once: true });
+  }
+}
+
+function setupInstallPrompt() {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    state.installAvailable = true;
+    state.installStatus = "";
+    render();
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    state.installAvailable = false;
+    state.installStatus = "Nakaru-San is installed on this device.";
+    render();
+  });
+}
+
+async function installNakaruApp() {
+  if (isStandaloneApp()) {
+    state.installStatus = "Nakaru-San is already installed on this device.";
+    render();
+    return;
+  }
+  if (deferredInstallPrompt) {
+    try {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      state.installStatus = choice?.outcome === "accepted"
+        ? "Installing Nakaru-San..."
+        : "Install was canceled. You can try again from this menu.";
+    } catch (error) {
+      console.warn("Install prompt failed", error);
+      state.installStatus = "Use your browser menu to install Nakaru-San.";
+    } finally {
+      deferredInstallPrompt = null;
+      state.installAvailable = false;
+      render();
+    }
+    return;
+  }
+  state.installStatus = "iPhone: open Safari, tap Share, then Add to Home Screen. Android: open Chrome menu, then Install app.";
+  render();
+}
+
 function renderDragonBackground() {
   return `<canvas id="dragon-canvas" class="dragon-background" aria-hidden="true"></canvas>`;
 }
@@ -699,6 +764,8 @@ function drawDragonBackground(time = 0) {
 
 async function init() {
   clearLegacyLocalAuth();
+  registerServiceWorker();
+  setupInstallPrompt();
   const initialSearch = readUrlSearchIntent();
   if (initialSearch) {
     state.topSearch = initialSearch;
@@ -3249,6 +3316,8 @@ function renderLogoSidebar(nav) {
       </div>
       <div class="sidebar-cta">
         <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
+        <button class="ghost-action" onclick="installNakaruApp()" type="button">${state.installAvailable ? "Install Nakaru-San App" : "Install App"}</button>
+        ${state.installStatus ? `<small class="install-hint">${escapeHtml(state.installStatus)}</small>` : ""}
       </div>
     </aside>
   `;
@@ -3350,6 +3419,7 @@ window.declineLiveInvite = declineLiveInvite;
 window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.signOut = signOut;
+window.installNakaruApp = installNakaruApp;
 
 init();
 

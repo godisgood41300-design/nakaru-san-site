@@ -67,6 +67,15 @@ const standaloneIndex = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nakaru-San</title>
     <meta name="description" content="Nakaru-San anime and gaming social community." />
+    <meta name="theme-color" content="#7c3cff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Nakaru-San" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
     <style>${inlineCss}</style>
     <script>${inlineScript(inlineConfig)}</script>
     <script>${inlineScript(inlineSupabase)}</script>
@@ -108,12 +117,18 @@ const standaloneIndex = `<!doctype html>
 
 await fs.writeFile(path.join(dist, "index.html"), standaloneIndex, "utf8");
 
-for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png"]) {
+for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png", "manifest.webmanifest", "service-worker.js", "offline.html"]) {
   try {
     await copyFile(path.join(dist, file), path.join(root, file));
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
+}
+
+try {
+  await copyDirectory(path.join(dist, "icons"), path.join(root, "icons"));
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
 }
 
 console.log("Nakaru-San static build created in dist/");

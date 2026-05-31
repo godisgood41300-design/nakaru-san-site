@@ -14,7 +14,8 @@ const types = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".webmanifest": "application/manifest+json; charset=utf-8"
 };
 const fallbackConfig = {
   supabaseUrl: "https://rawpuvxrexgfsrgjtcep.supabase.co",
@@ -44,7 +45,7 @@ function sendFile(response, target) {
 
     response.writeHead(200, {
       "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": path.basename(target) === "index.html" ? "no-store, max-age=0" : "public, max-age=60"
+      "Cache-Control": ["index.html", "service-worker.js", "manifest.webmanifest"].includes(path.basename(target)) ? "no-store, max-age=0" : "public, max-age=60"
     });
     response.end(data);
   });
@@ -76,7 +77,7 @@ http.createServer((request, response) => {
     if (!error) {
     response.writeHead(200, {
       "Content-Type": types[path.extname(target).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": path.basename(target) === "index.html" ? "no-store, max-age=0" : "public, max-age=60"
+      "Cache-Control": ["index.html", "service-worker.js", "manifest.webmanifest"].includes(path.basename(target)) ? "no-store, max-age=0" : "public, max-age=60"
     });
       response.end(data);
       return;

@@ -16,6 +16,7 @@ This is a clean static rebuild made to avoid old duplicate files, stale deployme
 - YouTube link posting with embedded video previews
 - Messaging inbox and DM conversation layout
 - GoLive page with browser camera/microphone preview
+- Installable phone-app/PWA support for iPhone and Android
 - Supabase Auth support
 - Supabase database/storage/realtime-ready schema
 - Public demo browsing when Supabase env variables are not set. Real accounts require Supabase Auth.
@@ -39,6 +40,7 @@ This is a clean static rebuild made to avoid old duplicate files, stale deployme
 - Searchable Go Live rooms with friend invites
 - One-to-one audio/video calls over the browser's internet connection through WebRTC
 - Camera/microphone permission preview for GoLive/call pages
+- Add-to-home-screen installation with app icons, standalone display, and a basic offline screen
 
 ## Features scaffolded for the next production step
 
@@ -143,6 +145,25 @@ npm run preview
 ```
 
 The production files are generated in `dist/`. This build does not require React, Vite, or any downloaded npm package.
+
+## Install as a phone app
+
+Nakaru-San is configured as a Progressive Web App.
+
+On iPhone:
+
+1. Open the live site in Safari.
+2. Tap the Share button.
+3. Tap Add to Home Screen.
+4. Confirm the name Nakaru-San.
+
+On Android:
+
+1. Open the live site in Chrome.
+2. Tap the browser menu.
+3. Tap Install app or Add to Home screen.
+
+The sidebar also includes an Install App button. On supported Android/Chrome browsers it can open the install prompt directly. On iPhone it shows the Safari install instructions.
 
 ## Deploy on Render as a Static Site
 
