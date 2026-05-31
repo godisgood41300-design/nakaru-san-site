@@ -103,6 +103,18 @@ label {
   padding: 6.25rem 1.25rem 2rem;
 }
 
+.dragon-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  opacity: 0.74;
+  mix-blend-mode: screen;
+  filter: saturate(1.1);
+}
+
 .kanji-rain {
   position: fixed;
   inset: -18vh 0 0;
@@ -164,6 +176,16 @@ label {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .dragon-background {
+    opacity: 0.48;
+  }
+
+  .kanji-rain span {
+    animation-duration: 36s;
+  }
+}
+
 .topbar {
   position: fixed;
   inset: 0 0 auto;
@@ -182,6 +204,7 @@ label {
 .merch-banner,
 .version-badge,
 .demo-banner,
+.page-anchor,
 .page-grid,
 .content-layout,
 .inbox-layout {

@@ -1,4 +1,4 @@
-const version = "20260531-social-live-call-fix";
+const version = "20260531-dragon-background";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -165,6 +165,10 @@ const remoteStreams = new Map();
 const pendingIceCandidates = new Map();
 const offeredPeers = new Set();
 const maxLiveParticipants = 3;
+let dragonCanvas = null;
+let dragonContext = null;
+let dragonAnimationStarted = false;
+let dragonReducedMotion = false;
 
 function validHttpUrl(value) {
   try {
@@ -533,6 +537,164 @@ function parseYouTubeUrl(value) {
   } catch {
     return null;
   }
+}
+
+function renderDragonBackground() {
+  return `<canvas id="dragon-canvas" class="dragon-background" aria-hidden="true"></canvas>`;
+}
+
+function resizeDragonCanvas(canvas) {
+  if (!canvas) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(window.innerWidth, 320);
+  const height = Math.max(window.innerHeight, 320);
+  const nextWidth = Math.floor(width * dpr);
+  const nextHeight = Math.floor(height * dpr);
+  if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    dragonContext?.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+}
+
+function ensureDragonBackground() {
+  const canvas = document.getElementById("dragon-canvas");
+  if (!canvas) return;
+  if (dragonCanvas !== canvas) {
+    dragonCanvas = canvas;
+    dragonContext = canvas.getContext("2d");
+    resizeDragonCanvas(canvas);
+  }
+  if (!dragonAnimationStarted) {
+    dragonReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches || false;
+    window.addEventListener("resize", () => resizeDragonCanvas(dragonCanvas), { passive: true });
+    dragonAnimationStarted = true;
+    requestAnimationFrame(drawDragonBackground);
+  }
+}
+
+function dragonPoint(index, total, time, width, height) {
+  const progress = index / Math.max(total - 1, 1);
+  const drift = dragonReducedMotion ? 0 : time * 0.00018;
+  const centerX = width * (0.5 + Math.sin(drift * 2.1) * 0.18);
+  const centerY = height * (0.5 + Math.cos(drift * 1.6) * 0.16);
+  const maxRadius = Math.min(width, height) * 0.44;
+  const radius = maxRadius * (0.16 + progress * 0.76);
+  const angle = progress * Math.PI * 2.55 + drift * Math.PI * 2;
+  return {
+    x: centerX + Math.cos(angle) * radius + Math.sin(progress * 14 + drift * 8) * 22,
+    y: centerY + Math.sin(angle) * radius * 0.62 + Math.cos(progress * 10 + drift * 7) * 14,
+    progress
+  };
+}
+
+function drawDragonBackground(time = 0) {
+  const canvas = document.getElementById("dragon-canvas");
+  if (canvas && canvas !== dragonCanvas) {
+    dragonCanvas = canvas;
+    dragonContext = canvas.getContext("2d");
+  }
+  const ctx = dragonContext;
+  if (!canvas || !ctx) {
+    requestAnimationFrame(drawDragonBackground);
+    return;
+  }
+
+  resizeDragonCanvas(canvas);
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  ctx.clearRect(0, 0, width, height);
+
+  const total = 38;
+  const points = Array.from({ length: total }, (_, index) => dragonPoint(index, total, time, width, height));
+  const bodyGradient = ctx.createLinearGradient(0, 0, width, height);
+  bodyGradient.addColorStop(0, "rgba(11, 11, 18, 0.16)");
+  bodyGradient.addColorStop(0.35, "rgba(124, 60, 255, 0.28)");
+  bodyGradient.addColorStop(0.72, "rgba(250, 204, 21, 0.2)");
+  bodyGradient.addColorStop(1, "rgba(124, 60, 255, 0.18)");
+
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+      return;
+    }
+    const prev = points[index - 1];
+    ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
+  });
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.08)";
+  ctx.lineWidth = 44;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.26)";
+  ctx.shadowBlur = 34;
+  ctx.stroke();
+
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+      return;
+    }
+    const prev = points[index - 1];
+    ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
+  });
+  ctx.strokeStyle = bodyGradient;
+  ctx.lineWidth = 18;
+  ctx.shadowColor = "rgba(250, 204, 21, 0.16)";
+  ctx.shadowBlur = 24;
+  ctx.stroke();
+
+  points.forEach((point, index) => {
+    if (index % 2 !== 0) return;
+    const size = 10 + (1 - point.progress) * 18;
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    ctx.rotate(point.progress * Math.PI * 3 + time * 0.00035);
+    ctx.fillStyle = index % 4 === 0 ? "rgba(250, 204, 21, 0.18)" : "rgba(124, 60, 255, 0.2)";
+    ctx.beginPath();
+    ctx.moveTo(0, -size);
+    ctx.lineTo(size * 0.58, 0);
+    ctx.lineTo(0, size * 0.72);
+    ctx.lineTo(-size * 0.58, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+
+  const head = points[0];
+  const pulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.003) * 0.5;
+  ctx.translate(head.x, head.y);
+  ctx.rotate(time * 0.00045);
+  ctx.fillStyle = `rgba(11, 11, 18, ${0.2 + pulse * 0.08})`;
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.28)";
+  ctx.lineWidth = 2;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.32)";
+  ctx.shadowBlur = 22;
+  ctx.beginPath();
+  ctx.moveTo(28, 0);
+  ctx.lineTo(5, 14);
+  ctx.lineTo(-24, 8);
+  ctx.lineTo(-10, 0);
+  ctx.lineTo(-24, -8);
+  ctx.lineTo(5, -14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(250, 204, 21, 0.42)";
+  ctx.beginPath();
+  ctx.arc(9, -5, 2.8, 0, Math.PI * 2);
+  ctx.arc(9, 5, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  requestAnimationFrame(drawDragonBackground);
 }
 
 async function init() {
@@ -3132,6 +3294,7 @@ function render() {
   ];
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
+      ${renderDragonBackground()}
       ${renderKanjiRain()}
       <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `<button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
@@ -3142,6 +3305,7 @@ function render() {
       <div class="page-anchor" data-page-root="${escapeHtml(state.page)}">${renderPage()}</div>
     </div>
   `;
+  ensureDragonBackground();
   if (state.stream) {
     attachMediaStreams();
   }

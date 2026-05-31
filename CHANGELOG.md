@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-05-31 - Subtle animated dragon background
+
+- Added a purple, black, and gold canvas dragon that swirls behind the Nakaru-San website without blocking clicks.
+- Kept the effect behind all cards, buttons, chat rooms, feeds, profile pages, and forms so readability stays clean.
+- Added reduced-motion support so the dragon becomes gentler for visitors who prefer less animation.
+- Updated cache-busting to `20260531-dragon-background` so deployed browsers fetch the new files.
+
 ## 2026-05-31 - Friend requests, messaging, calls, and live-room reliability pass
 
 - Fixed a messaging state bug where a random public profile could be selected as the active DM target before accepted friends finished loading.
