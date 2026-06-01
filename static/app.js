@@ -1,4 +1,4 @@
-const version = "20260601-notifications-reactions-dragon";
+const version = "20260601-closed-push-qr-dragon";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -383,6 +383,16 @@ function redirectUrl() {
   return `${origin.replace(/\/$/, "")}/`;
 }
 
+function appBaseUrl() {
+  const configured = String(config.appUrl || "").trim();
+  const origin = configured && validHttpUrl(configured) ? configured : window.location.origin;
+  return `${origin.replace(/\/$/, "")}`;
+}
+
+function downloadPageUrl() {
+  return `${appBaseUrl()}/#download-app`;
+}
+
 function readLocal(key, fallback) {
   try {
     const value = localStorage.getItem(key);
@@ -581,6 +591,32 @@ function notificationTitle(type) {
   return map[type] || "Nakaru-San";
 }
 
+async function notifyPushUser(recipientId, type, text, refId = "") {
+  if (!recipientId || !supabaseClient || !state.user || recipientId === state.user.id) return;
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) return;
+    await fetch("./api/push-notification", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        recipientId,
+        type,
+        title: notificationTitle(type),
+        body: text || notificationText(type),
+        page: notificationTarget(type),
+        refId
+      })
+    });
+  } catch (error) {
+    console.warn("Closed push notification could not be sent yet.", error);
+  }
+}
+
 function isUrgentNotification(type) {
   return ["call", "video-call", "audio-call", "live", "live-invite", "request"].includes(type);
 }
@@ -651,9 +687,9 @@ async function enableNotifications() {
     const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.ready : null;
     if (registration && config.vapidPublicKey) {
       await savePushSubscription(registration);
-      state.notificationStatus = "Notifications are enabled on this device.";
+      state.notificationStatus = "Notifications are enabled on this device, including closed-app push when the Render Web Service is configured.";
     } else if (registration) {
-      state.notificationStatus = "Notifications are enabled while the app is open. Closed-app push needs a VAPID key and Web Push sender.";
+      state.notificationStatus = "Notifications are enabled while the app is open. Closed-app push needs VAPID keys in Render.";
     } else {
       state.notificationStatus = "Notifications are enabled for this browser session.";
     }
@@ -766,6 +802,17 @@ async function installNakaruApp() {
   render();
 }
 
+async function copyDownloadLink() {
+  try {
+    await navigator.clipboard.writeText(downloadPageUrl());
+    state.installStatus = "Download link copied.";
+  } catch (error) {
+    console.warn("Download link copy failed", error);
+    state.installStatus = downloadPageUrl();
+  }
+  render();
+}
+
 function ensureMusicGraph() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) {
@@ -779,7 +826,7 @@ function ensureMusicGraph() {
     musicFeedbackNode = musicAudioContext.createGain();
     musicFilterNode = musicAudioContext.createBiquadFilter();
 
-    musicGainNode.gain.value = 0.06;
+    musicGainNode.gain.value = 0.1;
     musicDelayNode.delayTime.value = 0.34;
     musicFeedbackNode.gain.value = 0.22;
     musicFilterNode.type = "lowpass";
@@ -836,9 +883,9 @@ function scheduleOriginalAnimeAmbience() {
     const octave = musicStep % 9 === 0 ? 0.5 : musicStep % 7 === 0 ? 2 : 1;
     const frequency = scale[noteIndex] * octave;
     const duration = musicStep % 4 === 0 ? 1.45 : 0.82;
-    const level = musicStep % 5 === 0 ? 0.045 : 0.032;
+    const level = musicStep % 5 === 0 ? 0.068 : 0.049;
     playOriginalFluteNote(frequency, musicNextTime, duration, level);
-    if (musicStep % 6 === 0) playOriginalFluteNote(scale[(noteIndex + 3) % scale.length] * 0.5, musicNextTime + 0.08, 1.8, 0.018);
+    if (musicStep % 6 === 0) playOriginalFluteNote(scale[(noteIndex + 3) % scale.length] * 0.5, musicNextTime + 0.08, 1.8, 0.028);
     musicNextTime += musicStep % 4 === 0 ? 0.92 : 0.58;
     musicStep += 1;
   }
@@ -854,9 +901,9 @@ async function startBackgroundMusic() {
     if (context.state === "suspended") await context.resume();
     const now = context.currentTime;
     musicGainNode.gain.cancelScheduledValues(now);
-    musicGainNode.gain.setTargetAtTime(0.06, now, 0.35);
+    musicGainNode.gain.setTargetAtTime(0.1, now, 0.35);
     state.musicEnabled = true;
-    state.musicStatus = "Original low-volume anime ambience is playing.";
+    state.musicStatus = "Original anime ambience is playing a little louder.";
     scheduleOriginalAnimeAmbience();
     clearInterval(musicTimer);
     musicTimer = setInterval(scheduleOriginalAnimeAmbience, 1200);
@@ -961,7 +1008,7 @@ function drawDragonBackground(time = 0) {
   const starPulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.0009) * 0.5;
   ctx.save();
   ctx.globalCompositeOperation = "screen";
-  const starCount = 30;
+  const starCount = 48;
   for (let index = 0; index < starCount; index += 1) {
     const x = (index * 173 + (dragonReducedMotion ? 0 : time * (0.006 + index * 0.00012))) % (width + 140) - 70;
     const y = (index * 97 + (dragonReducedMotion ? 0 : time * (0.003 + index * 0.00008))) % (height + 120) - 60;
@@ -975,14 +1022,14 @@ function drawDragonBackground(time = 0) {
   }
   ctx.restore();
 
-  const total = 44;
+  const total = 58;
   const points = Array.from({ length: total }, (_, index) => dragonPoint(index, total, time, width, height));
   const bodyGradient = ctx.createLinearGradient(0, 0, width, height);
-  bodyGradient.addColorStop(0, "rgba(6, 7, 13, 0.24)");
-  bodyGradient.addColorStop(0.28, "rgba(124, 60, 255, 0.38)");
-  bodyGradient.addColorStop(0.55, "rgba(56, 189, 248, 0.16)");
-  bodyGradient.addColorStop(0.78, "rgba(250, 204, 21, 0.26)");
-  bodyGradient.addColorStop(1, "rgba(124, 60, 255, 0.22)");
+  bodyGradient.addColorStop(0, "rgba(4, 5, 10, 0.46)");
+  bodyGradient.addColorStop(0.25, "rgba(124, 60, 255, 0.5)");
+  bodyGradient.addColorStop(0.52, "rgba(56, 189, 248, 0.24)");
+  bodyGradient.addColorStop(0.76, "rgba(250, 204, 21, 0.34)");
+  bodyGradient.addColorStop(1, "rgba(124, 60, 255, 0.32)");
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -998,10 +1045,10 @@ function drawDragonBackground(time = 0) {
     const prev = points[index - 1];
     ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
   });
-  ctx.strokeStyle = "rgba(250, 204, 21, 0.11)";
-  ctx.lineWidth = 50;
-  ctx.shadowColor = "rgba(124, 60, 255, 0.34)";
-  ctx.shadowBlur = 42;
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.14)";
+  ctx.lineWidth = 64;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.48)";
+  ctx.shadowBlur = 54;
   ctx.stroke();
 
   ctx.beginPath();
@@ -1014,9 +1061,9 @@ function drawDragonBackground(time = 0) {
     ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
   });
   ctx.strokeStyle = bodyGradient;
-  ctx.lineWidth = 22;
-  ctx.shadowColor = "rgba(250, 204, 21, 0.24)";
-  ctx.shadowBlur = 30;
+  ctx.lineWidth = 30;
+  ctx.shadowColor = "rgba(250, 204, 21, 0.32)";
+  ctx.shadowBlur = 34;
   ctx.stroke();
 
   ctx.beginPath();
@@ -1028,10 +1075,28 @@ function drawDragonBackground(time = 0) {
     const prev = points[index - 1];
     ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
   });
-  ctx.strokeStyle = "rgba(216, 180, 254, 0.24)";
-  ctx.lineWidth = 5;
-  ctx.shadowColor = "rgba(56, 189, 248, 0.22)";
+  ctx.strokeStyle = "rgba(216, 180, 254, 0.34)";
+  ctx.lineWidth = 8;
+  ctx.shadowColor = "rgba(56, 189, 248, 0.28)";
   ctx.shadowBlur = 18;
+  ctx.stroke();
+
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const next = points[Math.min(index + 1, points.length - 1)] || point;
+    const angle = Math.atan2(next.y - point.y, next.x - point.x);
+    const normalX = Math.cos(angle + Math.PI / 2);
+    const normalY = Math.sin(angle + Math.PI / 2);
+    const bellyOffset = 9 + Math.sin(index * 0.8 + time * 0.003) * 3;
+    const x = point.x - normalX * bellyOffset;
+    const y = point.y - normalY * bellyOffset;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.28)";
+  ctx.lineWidth = 3.2;
+  ctx.shadowColor = "rgba(250, 204, 21, 0.24)";
+  ctx.shadowBlur = 12;
   ctx.stroke();
 
   points.forEach((point, index) => {
@@ -1049,6 +1114,28 @@ function drawDragonBackground(time = 0) {
     ctx.quadraticCurveTo(0, 8 * scale, 16 * scale, -7 * scale);
     ctx.moveTo(-13 * scale, 4 * scale);
     ctx.quadraticCurveTo(0, -8 * scale, 13 * scale, 4 * scale);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  points.forEach((point, index) => {
+    if (index % 3 !== 1 || index < 3) return;
+    const scale = Math.max(0.28, 1 - point.progress * 0.62);
+    const next = points[Math.min(index + 1, points.length - 1)] || point;
+    const angle = Math.atan2(next.y - point.y, next.x - point.x);
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.fillStyle = index % 6 === 1 ? "rgba(250, 204, 21, 0.32)" : "rgba(88, 28, 135, 0.34)";
+    ctx.strokeStyle = "rgba(216, 180, 254, 0.2)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -22 * scale);
+    ctx.lineTo(10 * scale, -2 * scale);
+    ctx.lineTo(0, 7 * scale);
+    ctx.lineTo(-10 * scale, -2 * scale);
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
     ctx.restore();
   });
@@ -1081,11 +1168,11 @@ function drawDragonBackground(time = 0) {
   const pulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.003) * 0.5;
   ctx.translate(head.x, head.y);
   ctx.rotate(headAngle);
-  ctx.fillStyle = `rgba(8, 8, 15, ${0.3 + pulse * 0.1})`;
-  ctx.strokeStyle = "rgba(250, 204, 21, 0.4)";
-  ctx.lineWidth = 2.3;
-  ctx.shadowColor = "rgba(124, 60, 255, 0.5)";
-  ctx.shadowBlur = 30;
+  ctx.fillStyle = `rgba(7, 7, 13, ${0.46 + pulse * 0.12})`;
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.56)";
+  ctx.lineWidth = 3;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.66)";
+  ctx.shadowBlur = 38;
   ctx.beginPath();
   ctx.moveTo(36, 0);
   ctx.lineTo(14, 14);
@@ -1110,13 +1197,31 @@ function drawDragonBackground(time = 0) {
   ctx.lineTo(6, 22);
   ctx.stroke();
 
+  ctx.fillStyle = "rgba(250, 204, 21, 0.34)";
+  ctx.beginPath();
+  ctx.moveTo(-12, -18);
+  ctx.lineTo(-38, -48);
+  ctx.lineTo(-4, -30);
+  ctx.lineTo(6, -18);
+  ctx.closePath();
+  ctx.moveTo(-12, 18);
+  ctx.lineTo(-38, 48);
+  ctx.lineTo(-4, 30);
+  ctx.lineTo(6, 18);
+  ctx.closePath();
+  ctx.fill();
+
   ctx.strokeStyle = "rgba(216, 180, 254, 0.42)";
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 2.2;
   ctx.beginPath();
   ctx.moveTo(15, -7);
-  ctx.bezierCurveTo(52, -30, 84, -12, 118, -32);
+  ctx.bezierCurveTo(58, -40, 92, -18, 132, -42);
   ctx.moveTo(15, 7);
-  ctx.bezierCurveTo(52, 30, 84, 12, 118, 32);
+  ctx.bezierCurveTo(58, 40, 92, 18, 132, 42);
+  ctx.moveTo(-7, -4);
+  ctx.bezierCurveTo(-38, -18, -56, -2, -78, -15);
+  ctx.moveTo(-7, 4);
+  ctx.bezierCurveTo(-38, 18, -56, 2, -78, 15);
   ctx.stroke();
 
   ctx.strokeStyle = "rgba(56, 189, 248, 0.28)";
@@ -1128,11 +1233,22 @@ function drawDragonBackground(time = 0) {
   ctx.lineTo(48, 9);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(250, 204, 21, 0.74)";
+  ctx.fillStyle = "rgba(250, 204, 21, 0.88)";
   ctx.beginPath();
   ctx.arc(14, -5.5, 3.2, 0, Math.PI * 2);
   ctx.arc(14, 5.5, 3.2, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.38)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(28, -8);
+  ctx.lineTo(37, -4);
+  ctx.lineTo(28, 0);
+  ctx.moveTo(28, 8);
+  ctx.lineTo(37, 4);
+  ctx.lineTo(28, 0);
+  ctx.stroke();
   ctx.restore();
 
   requestAnimationFrame(drawDragonBackground);
@@ -1142,6 +1258,12 @@ async function init() {
   clearLegacyLocalAuth();
   registerServiceWorker();
   setupInstallPrompt();
+  window.addEventListener("hashchange", () => {
+    const hashPage = pageFromHash();
+    if (hashPage && hashPage !== state.page) setPage(hashPage);
+  });
+  const hashPage = pageFromHash();
+  if (hashPage) state.page = hashPage;
   const initialSearch = readUrlSearchIntent();
   if (initialSearch) {
     state.topSearch = initialSearch;
@@ -1691,6 +1813,20 @@ function scrollToSection(selector) {
     const target = document.querySelector(selector);
     if (target?.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
+}
+
+function pageFromHash() {
+  const hash = decodeURIComponent(String(window.location.hash || "").replace(/^#/, "")).trim().toLowerCase();
+  const aliases = {
+    download: "download-app",
+    "download-app": "download-app",
+    golive: "live",
+    live: "live",
+    requests: "friend-requests",
+    messaging: "messages"
+  };
+  const allowed = ["home", "feed", "public-rooms", "private-rooms", "profile", "edit-profile", "video", "messages", "calls", "friend-requests", "inbox", "search", "live", "download-app"];
+  return aliases[hash] || (allowed.includes(hash) ? hash : "");
 }
 
 function setPage(page) {
@@ -2355,6 +2491,7 @@ async function sendFriendRequest(receiverId) {
       render();
       return;
     }
+    let sentRequest = null;
     if (existing?.status === "declined" && existing.sender_id === state.user.id) {
       const { data, error } = await supabaseClient
         .from("friend_requests")
@@ -2363,6 +2500,7 @@ async function sendFriendRequest(receiverId) {
         .select("id,sender_id,receiver_id,status,created_at,updated_at")
         .single();
       if (error) throw error;
+      sentRequest = data;
       state.outgoingRequests = [data, ...state.outgoingRequests.filter((request) => request.id !== data.id)];
     } else {
       const { data, error } = await supabaseClient
@@ -2371,9 +2509,11 @@ async function sendFriendRequest(receiverId) {
         .select("id,sender_id,receiver_id,status,created_at,updated_at")
         .single();
       if (error) throw error;
+      sentRequest = data;
       state.outgoingRequests = [data, ...state.outgoingRequests.filter((request) => request.id !== data.id)];
     }
     state.socialStatus = "Friend request sent.";
+    void notifyPushUser(receiverId, "request", `${profileName({ id: state.user.id, ...state.profile })} sent you a friend request.`, sentRequest?.id || "");
     await Promise.allSettled([loadFriendRequests(), loadPublicProfiles()]);
   } catch (error) {
     console.error("Friend request failed", error);
@@ -2399,6 +2539,7 @@ async function respondFriendRequest(requestId, status) {
       state.activeConversationPairKey = "";
       state.dmMessages = [];
       state.socialStatus = "Friend request accepted.";
+      void notifyPushUser(request.sender_id, "accepted", `${profileName({ id: state.user.id, ...state.profile })} accepted your friend request.`, requestId);
     } else {
       state.socialStatus = `Friend request ${status}.`;
     }
@@ -2878,6 +3019,7 @@ async function sendDm(event) {
       if (input) input.value = "";
       if (fileInput) fileInput.value = "";
       state.dmStatus = "";
+      void notifyPushUser(state.activeDmRecipient, "message", text ? `${profileName({ id: state.user.id, ...state.profile })}: ${text.slice(0, 90)}` : `${profileName({ id: state.user.id, ...state.profile })} sent you media.`, data.id);
       render();
       return;
     } catch (error) {
@@ -2907,6 +3049,7 @@ async function sendDm(event) {
         if (input) input.value = "";
         if (fileInput) fileInput.value = "";
         state.dmStatus = "";
+        void notifyPushUser(state.activeDmRecipient, "message", text ? `${profileName({ id: state.user.id, ...state.profile })}: ${text.slice(0, 90)}` : `${profileName({ id: state.user.id, ...state.profile })} sent you media.`, data.id);
         render();
         return;
       } catch (fallbackError) {
@@ -2945,6 +3088,7 @@ async function startFriendCall(friendId, type = "video") {
     state.callRoom = data.room_id;
     state.activeDmRecipient = friendId;
     state.page = "calls";
+    void notifyPushUser(friendId, type === "audio" ? "audio-call" : "video-call", `${profileName({ id: state.user.id, ...state.profile })} is calling you.`, data.id);
     await connectCall(type, true);
     await loadCalls();
   } catch (error) {
@@ -2964,6 +3108,7 @@ async function acceptCall(callId) {
     state.callRoom = call.room_id;
     state.activeDmRecipient = call.caller_id === state.user.id ? call.receiver_id : call.caller_id;
     state.page = "calls";
+    void notifyPushUser(state.activeDmRecipient, "call", `${profileName({ id: state.user.id, ...state.profile })} accepted your call.`, call.id);
     await connectCall(call.call_type || "video", false);
     await loadCalls();
   } catch (error) {
@@ -3109,14 +3254,15 @@ async function inviteFriendToLiveRoom(friendId) {
   try {
     if (!state.activeLiveRoom) await createLiveRoom();
     if (!state.activeLiveRoom) return;
-    const { error } = await supabaseClient.from("live_room_invites").insert({
+    const { data, error } = await supabaseClient.from("live_room_invites").insert({
       room_id: state.activeLiveRoom.id,
       sender_id: state.user.id,
       receiver_id: friendId,
       status: "pending"
-    });
+    }).select("id,room_id,sender_id,receiver_id,status,created_at").single();
     if (error) throw error;
     state.liveRoomStatus = "Live room invite sent.";
+    void notifyPushUser(friendId, "live-invite", `${profileName({ id: state.user.id, ...state.profile })} invited you to ${state.activeLiveRoom.room_name || "a live room"}.`, data?.id || state.activeLiveRoom.id);
     await loadLiveRoomInvites();
   } catch (error) {
     console.error("Live room invite failed", error);
@@ -3137,6 +3283,7 @@ async function acceptLiveInvite(inviteId) {
     state.callRoom = invite.room_id;
     state.page = "live";
     state.liveRoomStatus = "Live invite accepted. Joining room...";
+    void notifyPushUser(invite.sender_id, "live-invite", `${profileName({ id: state.user.id, ...state.profile })} accepted your live room invite.`, inviteId);
     await joinCall("video");
     await loadLiveRoomInvites();
   } catch (error) {
@@ -3638,6 +3785,38 @@ function renderAboutSection() {
   `;
 }
 
+function renderDownloadAppPage() {
+  const url = downloadPageUrl();
+  const qrSrc = `./api/download-qr.svg?target=${encodeURIComponent(url)}`;
+  return `
+    <main class="content-layout download-app-layout">
+      <section class="panel download-app-panel">
+        <div class="panel-title">
+          <span class="eyebrow">Install Nakaru-San</span>
+          <h2>Download the App</h2>
+        </div>
+        <p>Nakaru-San can be installed on your phone like an app. Scan the QR code, open the site, then use your browser install option.</p>
+        <div class="download-actions">
+          <button class="primary-action" onclick="installNakaruApp()" type="button">Install App</button>
+          <button class="ghost-action" onclick="enableNotifications()" ${state.notificationSaving ? "disabled" : ""} type="button">${state.notificationSaving ? "Enabling..." : "Enable Notifications"}</button>
+          <button class="ghost-action" onclick="copyDownloadLink()" type="button">Copy Link</button>
+        </div>
+        ${state.installStatus ? `<p class="status-text">${escapeHtml(state.installStatus)}</p>` : ""}
+        ${state.notificationStatus ? `<p class="status-text">${escapeHtml(state.notificationStatus)}</p>` : ""}
+        <div class="download-help-grid">
+          <article><strong>iPhone</strong><span>Open in Safari, tap Share, then Add to Home Screen. After installing, open the app and enable notifications.</span></article>
+          <article><strong>Android</strong><span>Open in Chrome, tap the menu, then Install app. Enable notifications when prompted.</span></article>
+        </div>
+      </section>
+      <aside class="panel download-qr-card">
+        <span class="eyebrow">Scan this</span>
+        <img class="download-qr" src="${escapeHtml(qrSrc)}" alt="QR code to install Nakaru-San" onerror="this.src='./nakaru-san-download-qr.svg';" />
+        <a class="download-link" href="${escapeHtml(url)}">${escapeHtml(url)}</a>
+      </aside>
+    </main>
+  `;
+}
+
 function renderChatLine(message = {}) {
   const messageProfile = profileById(message.user_id);
   const profile = messageProfile.id ? messageProfile : { display_name: message.author || "Nakaru Member" };
@@ -3725,6 +3904,7 @@ function renderPostComposer(placeholder = "Share an anime theory, gaming update,
 }
 
 function renderPage() {
+  if (state.page === "download-app") return renderDownloadAppPage();
   const profilePosts = state.posts.filter((post) => post.user_id === state.user?.id);
   const activeThread = state.threads.find((thread) => thread.id === state.activeThread) || state.threads[0];
   const activeRoom = rooms.find((room) => room.id === state.activeRoom) || rooms[0];
@@ -3960,6 +4140,7 @@ function renderLogoSidebar(nav) {
       <div class="sidebar-cta">
         <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
         <button class="ghost-action" onclick="installNakaruApp()" type="button">${state.installAvailable ? "Install Nakaru-San App" : "Install App"}</button>
+        <button class="ghost-action" onclick="setPage('download-app')" type="button">Download QR Page</button>
         <button class="ghost-action" onclick="toggleBackgroundMusic()" type="button">${state.musicEnabled ? "Pause Anime Ambience" : "Play Anime Ambience"}</button>
         <button class="ghost-action" onclick="enableNotifications()" ${state.notificationSaving ? "disabled" : ""} type="button">${state.notificationSaving ? "Enabling..." : "Enable Notifications"}</button>
         ${state.installStatus ? `<small class="install-hint">${escapeHtml(state.installStatus)}</small>` : ""}
@@ -4092,6 +4273,7 @@ window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.signOut = signOut;
 window.installNakaruApp = installNakaruApp;
+window.copyDownloadLink = copyDownloadLink;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
 window.enableNotifications = enableNotifications;
 window.toggleNotifications = toggleNotifications;

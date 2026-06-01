@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-01 - Closed push, QR download, louder music, and dragon upgrade
+
+- Added a Render Web Service `/api/push-notification` route for closed-app Web Push notifications using VAPID keys and Supabase push subscriptions.
+- Added a `/api/download-qr.svg` route plus standalone `nakaru-san-download-qr.png` and `nakaru-san-download-qr.svg` files for scanning directly to the app download page.
+- Added a public `/#download-app` page with app install instructions, notification setup, QR code, and copy-link controls.
+- Added VAPID key generation and QR generation scripts.
+- Made the original browser-generated anime ambience louder while keeping it user-controlled and copyright-safe.
+- Made the dragon background more realistic with extra body depth, layered scales, horns, whiskers, teeth, a stronger glow, and more moving stars.
+- Updated cache-busting to `20260601-closed-push-qr-dragon`.
+
 ## 2026-06-01 - Notifications, reactions, comments, sharing, and dragon polish
 
 - Fixed direct-message thread separation by adding a stable two-user conversation key and resetting message state when switching recipients.

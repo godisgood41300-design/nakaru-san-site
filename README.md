@@ -167,12 +167,26 @@ On Android:
 
 The sidebar also includes an Install App button. On supported Android/Chrome browsers it can open the install prompt directly. On iPhone it shows the Safari install instructions.
 
+## QR download page
+
+The app includes a public install page at `/#download-app`.
+
+A standalone QR image is included as `nakaru-san-download-qr.png`, with an SVG copy at `nakaru-san-download-qr.svg`. Scanning it opens the app download/install page. To regenerate it for another live URL:
+
+```bash
+QR_TARGET=https://your-domain.com npm run make:qr
+```
+
 ## Notifications
 
 - In-app notifications appear for new friend requests, accepted requests, messages, incoming video calls, incoming audio calls, accepted calls, and live room invites while the app is open.
 - Browser/PWA notifications can be enabled from the sidebar with Enable Notifications.
-- True notifications while the app is fully closed require Web Push delivery from a server or edge function using VAPID keys. The frontend stores the browser push subscription in `push_subscriptions` when `VITE_VAPID_PUBLIC_KEY` is configured, but a server-side sender is still needed to wake closed apps.
-- Without a Web Push sender, notifications still work while Nakaru-San is open or running in the browser/PWA background.
+- True notifications while the app is fully closed require Render Web Service hosting, not Render Static Site, because the app needs the included `/api/push-notification` sender route.
+- Generate VAPID keys with `npm run generate:vapid`.
+- Add these Render environment variables for closed push: `VITE_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `SUPABASE_SERVICE_ROLE_KEY`.
+- Users must click Enable Notifications on each device.
+- On iPhone, install Nakaru-San to the Home Screen first, open the installed app, then enable notifications.
+- Without the VAPID/service-role variables, notifications still work while Nakaru-San is open or running in the browser/PWA background.
 
 ## Music and Media
 
@@ -215,8 +229,9 @@ Use this setup if your Render service type is Web Service:
 5. Start Command: `npm start`
 6. Leave Publish Directory blank because Web Services do not use it.
 7. Add the `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` environment variables.
-8. Deploy.
-9. Add your custom domain in Render and point DNS to Render's Web Service target.
+8. For closed push notifications, also add `VITE_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `SUPABASE_SERVICE_ROLE_KEY`.
+9. Deploy.
+10. Add your custom domain in Render and point DNS to Render's Web Service target.
 
 For your domain, use `VITE_APP_URL=https://nakaru-san.nakaru-san.com`.
 

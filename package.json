@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "node build-static.mjs && node static-server.mjs dist 4173",
     "build": "node build-static.mjs",
+    "generate:vapid": "node scripts/generate-vapid-keys.mjs",
+    "make:qr": "node scripts/create-download-qr.mjs",
     "preview": "node static-server.mjs dist 4173",
     "start": "node static-server.mjs dist"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {},
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
   "devDependencies": {}
 }

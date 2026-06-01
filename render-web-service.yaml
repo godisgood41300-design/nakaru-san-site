@@ -13,3 +13,13 @@ services:
         sync: false
       - key: VITE_INSTAGRAM_AUTH_URL
         sync: false
+      - key: VITE_VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

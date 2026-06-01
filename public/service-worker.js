@@ -1,4 +1,4 @@
-const CACHE_NAME = "nakaru-san-pwa-20260601-notifications-reactions-dragon";
+const CACHE_NAME = "nakaru-san-pwa-20260601-closed-push-qr-dragon";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,6 +8,8 @@ const APP_SHELL = [
   "./supabase.min.js",
   "./manifest.webmanifest",
   "./offline.html",
+  "./nakaru-san-download-qr.svg",
+  "./nakaru-san-download-qr.png",
   "./nakaru-san-logo.png",
   "./nakaru-hoodies-banner.png",
   "./icons/icon-192.png",

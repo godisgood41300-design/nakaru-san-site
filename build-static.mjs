@@ -119,7 +119,7 @@ const standaloneIndex = `<!doctype html>
 
 await fs.writeFile(path.join(dist, "index.html"), standaloneIndex, "utf8");
 
-for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png", "manifest.webmanifest", "service-worker.js", "offline.html"]) {
+for (const file of ["index.html", "app.js", "styles.css", "config.js", "supabase.min.js", "nakaru-san-logo.png", "nakaru-hoodies-banner.png", "nakaru-san-download-qr.svg", "nakaru-san-download-qr.png", "manifest.webmanifest", "service-worker.js", "offline.html"]) {
   try {
     await copyFile(path.join(dist, file), path.join(root, file));
   } catch (error) {
