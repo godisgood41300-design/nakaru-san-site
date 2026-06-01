@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-01 - Notifications, reactions, comments, sharing, and dragon polish
+
+- Made the dragon background more detailed with glowing body scales, horns, whiskers, and a more directional head while keeping it behind the UI.
+- Brightened the dark anime UI slightly and added a subtle rotating blue starfield layer behind the content.
+- Sharpened the kanji rain plus gold `NAKARU` and purple `SAN` word rain so they read cleaner.
+- Added falling `NAKARU` word rain in gold and separate `SAN` word rain in purple, mixed with kanji rain.
+- Added an in-app notification tray and topbar alert badge for messages, friend requests, accepted requests, incoming video calls, incoming audio calls, accepted calls, and live room invites.
+- Added browser/PWA notification permission handling and service worker push/click handlers.
+- Added a push subscription table to the Supabase schema for future closed-app Web Push delivery.
+- Made post Like, Comment, and Share buttons functional.
+- Added `post_likes`, like RPC, comment count triggers, and comment persistence support to the Supabase schema.
+- Updated cache-busting to `20260601-notifications-reactions-dragon`.
+
 ## 2026-05-31 - Installable phone app / PWA support
 
 - Added a Progressive Web App manifest so Nakaru-San can be installed to iPhone and Android home screens.

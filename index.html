@@ -16,12 +16,12 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png" />
     <style>:root {
   color-scheme: dark;
-  --bg: #050509;
-  --panel: rgba(15, 15, 25, 0.92);
-  --panel-strong: #11111d;
-  --line: rgba(255, 255, 255, 0.1);
+  --bg: #070812;
+  --panel: rgba(20, 20, 34, 0.94);
+  --panel-strong: #161426;
+  --line: rgba(255, 255, 255, 0.14);
   --text: #f8fafc;
-  --muted: #a7adc0;
+  --muted: #bdc4d7;
   --purple: #7c3cff;
   --purple-strong: #5b21b6;
   --blue: #38bdf8;
@@ -48,9 +48,10 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(124, 60, 255, 0.28), transparent 34rem),
-    radial-gradient(circle at top right, rgba(250, 204, 21, 0.12), transparent 30rem),
-    linear-gradient(135deg, #050509 0%, #11111d 52%, #070713 100%);
+    radial-gradient(circle at top left, rgba(124, 60, 255, 0.34), transparent 34rem),
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.16), transparent 30rem),
+    radial-gradient(circle at 54% 6%, rgba(56, 189, 248, 0.13), transparent 32rem),
+    linear-gradient(135deg, #070812 0%, #171529 52%, #090a17 100%);
 }
 
 body::before {
@@ -60,8 +61,8 @@ body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(5, 5, 9, 0.42), rgba(5, 5, 9, 0.78)),
-    radial-gradient(circle at 50% 0%, rgba(124, 60, 255, 0.2), transparent 30rem);
+    linear-gradient(180deg, rgba(7, 8, 18, 0.32), rgba(7, 8, 18, 0.68)),
+    radial-gradient(circle at 50% 0%, rgba(124, 60, 255, 0.24), transparent 30rem);
 }
 
 button,
@@ -119,6 +120,27 @@ label {
   padding: 6.25rem 1.25rem 2rem;
 }
 
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: -14vh -14vw;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.58;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(125, 211, 252, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 18% 72%, rgba(59, 130, 246, 0.85) 0 1.2px, transparent 2.4px),
+    radial-gradient(circle at 31% 28%, rgba(186, 230, 253, 0.78) 0 1px, transparent 2px),
+    radial-gradient(circle at 45% 82%, rgba(56, 189, 248, 0.75) 0 1px, transparent 2px),
+    radial-gradient(circle at 62% 18%, rgba(147, 197, 253, 0.82) 0 1.1px, transparent 2.2px),
+    radial-gradient(circle at 73% 54%, rgba(56, 189, 248, 0.72) 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 24%, rgba(191, 219, 254, 0.78) 0 1.2px, transparent 2.5px),
+    radial-gradient(circle at 94% 78%, rgba(96, 165, 250, 0.8) 0 1px, transparent 2.1px);
+  background-size: 260px 260px, 340px 340px, 420px 420px, 310px 310px, 380px 380px, 290px 290px, 450px 450px, 330px 330px;
+  transform-origin: 50% 50%;
+  animation: starOrbit 64s linear infinite;
+}
+
 .dragon-background {
   position: fixed;
   inset: 0;
@@ -126,9 +148,9 @@ label {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  opacity: 0.74;
+  opacity: 0.86;
   mix-blend-mode: screen;
-  filter: saturate(1.1);
+  filter: saturate(1.22) contrast(1.08);
 }
 
 .kanji-rain {
@@ -145,31 +167,51 @@ label {
   position: absolute;
   left: var(--x);
   top: -18vh;
-  color: rgba(196, 142, 255, 0.52);
+  color: rgba(216, 180, 254, 0.72);
   font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
-  font-size: clamp(3rem, 7vw, 7.4rem);
+  font-size: 5.75rem;
   font-weight: 900;
+  letter-spacing: 0;
+  text-rendering: geometricPrecision;
   text-shadow:
-    0 0 16px rgba(124, 60, 255, 0.72),
-    0 0 38px rgba(168, 85, 247, 0.5),
-    0 0 54px rgba(250, 204, 21, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  filter: drop-shadow(0 0 22px rgba(124, 60, 255, 0.62));
+    0 0 1px rgba(255, 255, 255, 0.95),
+    0 0 14px rgba(124, 60, 255, 0.86),
+    0 0 32px rgba(168, 85, 247, 0.66),
+    0 0 52px rgba(250, 204, 21, 0.2);
+  filter: drop-shadow(0 0 18px rgba(124, 60, 255, 0.64));
   animation: kanjiFall var(--duration) linear infinite;
   animation-delay: var(--delay);
 }
 
 .kanji-rain span.gold {
-  color: rgba(250, 204, 21, 0.58);
+  color: rgba(253, 224, 71, 0.86);
   text-shadow:
-    0 0 15px rgba(250, 204, 21, 0.72),
-    0 0 42px rgba(180, 83, 9, 0.42),
-    0 0 62px rgba(124, 60, 255, 0.2);
-  filter: drop-shadow(0 0 24px rgba(250, 204, 21, 0.46));
+    0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 14px rgba(250, 204, 21, 0.9),
+    0 0 34px rgba(180, 83, 9, 0.5),
+    0 0 58px rgba(56, 189, 248, 0.16);
+  filter: drop-shadow(0 0 22px rgba(250, 204, 21, 0.62));
 }
 
 .kanji-rain span.purple {
-  color: rgba(196, 142, 255, 0.54);
+  color: rgba(216, 180, 254, 0.78);
+}
+
+.kanji-rain span.word {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 3rem;
+  letter-spacing: 0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-weight: 950;
+}
+
+.kanji-rain span.word.gold {
+  color: rgba(253, 224, 71, 0.92);
+}
+
+.kanji-rain span.word.purple {
+  color: rgba(216, 180, 254, 0.88);
 }
 
 @keyframes kanjiFall {
@@ -178,17 +220,33 @@ label {
     opacity: 0;
   }
   12% {
-    opacity: 0.82;
+    opacity: 0.9;
   }
   52% {
-    opacity: 0.58;
+    opacity: 0.7;
     text-shadow:
-      0 0 20px rgba(216, 180, 254, 0.82),
-      0 0 52px rgba(124, 60, 255, 0.5);
+      0 0 1px rgba(255, 255, 255, 0.92),
+      0 0 18px rgba(216, 180, 254, 0.88),
+      0 0 46px rgba(124, 60, 255, 0.58);
   }
   100% {
     transform: translate3d(16px, 126vh, 0) rotate(12deg) scale(1.04);
     opacity: 0;
+  }
+}
+
+@keyframes starOrbit {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    background-position: 0 0, 40px 20px, 80px 120px, 20px 80px, 150px 30px, 90px 50px, 130px 170px, 210px 60px;
+  }
+  50% {
+    transform: translate3d(-34px, 42px, 0) rotate(1.6deg) scale(1.035);
+    background-position: 120px 170px, 180px 120px, 220px 240px, 150px 220px, 260px 160px, 210px 190px, 280px 320px, 350px 210px;
+  }
+  100% {
+    transform: translate3d(-68px, 84px, 0) rotate(3.2deg) scale(1);
+    background-position: 260px 340px, 340px 240px, 420px 420px, 310px 310px, 380px 290px, 290px 290px, 450px 450px, 330px 330px;
   }
 }
 
@@ -212,7 +270,7 @@ label {
   gap: 0.75rem;
   min-height: 76px;
   padding: 0.7rem 1rem;
-  background: rgba(5, 5, 9, 0.9);
+  background: rgba(9, 10, 22, 0.9);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(16px);
 }
@@ -521,6 +579,75 @@ label {
   line-height: 1.45;
 }
 
+.notification-bell {
+  position: relative;
+  min-height: 42px;
+  padding: 0.62rem 0.8rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 850;
+}
+
+.notification-bell.has-unread {
+  border-color: rgba(250, 204, 21, 0.5);
+  box-shadow: 0 0 24px rgba(124, 60, 255, 0.22);
+}
+
+.notification-bell b {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.45rem;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  padding: 0 0.25rem;
+  color: #050509;
+  background: var(--gold);
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.notification-tray {
+  position: fixed;
+  top: 86px;
+  right: 1rem;
+  z-index: 40;
+  width: min(420px, calc(100vw - 2rem));
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 8px;
+  background: rgba(15, 15, 25, 0.96);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.notification-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.notification-item {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.8rem;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.notification-item span,
+.notification-item small {
+  color: var(--muted);
+}
+
 .topbar nav {
   display: flex;
   align-items: center;
@@ -660,7 +787,7 @@ label {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 .page-grid,
@@ -1112,6 +1239,44 @@ label {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.52rem 0.75rem;
+}
+
+.post-actions button.active {
+  color: #fff7cc;
+  border-color: rgba(250, 204, 21, 0.48);
+  background: linear-gradient(135deg, rgba(124, 60, 255, 0.48), rgba(250, 204, 21, 0.16));
+}
+
+.comment-panel {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.comment-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.comment-item {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 8px;
+  background: rgba(5, 5, 9, 0.46);
+}
+
+.comment-item p {
+  margin: 0.25rem 0 0;
+  color: #e7e9f6;
+}
+
+.comment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
 }
 
 .profile-card {
@@ -1708,7 +1873,11 @@ label {
   }
 
   .kanji-rain span {
-    font-size: clamp(2.4rem, 16vw, 5rem);
+    font-size: 3.2rem;
+  }
+
+  .kanji-rain span.word {
+    font-size: 1.75rem;
   }
 
   .merch-banner {
@@ -1789,7 +1958,8 @@ label {
   "supabaseAnonKey": "sb_publishable_iAMpHKfFKawzaFOSzalT9w_yA7_nIR8",
   "appUrl": "https://nakaru-san-site-1.onrender.com",
   "instagramAuthUrl": "",
-  "enabledSocialProviders": ""
+  "enabledSocialProviders": "",
+  "vapidPublicKey": ""
 };</script>
     <script>/**
  * Minified by jsDelivr using Terser v5.39.0.
@@ -1822,7 +1992,7 @@ var supabase=function(e){function t(e,t){var r={};for(var s in e)Object.prototyp
         </section>
       </main>
     </div>
-    <script>const version = "20260531-pwa-install";
+    <script>const version = "20260601-notifications-reactions-dragon";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -1854,6 +2024,13 @@ const kanjiRainItems = [
   ["武", 36, 19, 9, "purple"], ["影", 44, 25, 15, "purple"], ["魂", 52, 18, 5, "gold"], ["月", 60, 24, 11, "purple"],
   ["火", 68, 16, 2, "gold"], ["空", 76, 27, 8, "purple"], ["道", 84, 20, 14, "gold"], ["和", 92, 26, 4, "purple"],
   ["絆", 8, 31, 17, "gold"], ["夢", 32, 22, 20, "purple"], ["光", 57, 29, 22, "gold"], ["心", 88, 18, 19, "purple"]
+];
+
+const kanjiWordRainItems = [
+  ["絆", 4, 18, 0, "purple"], ["NAKARU", 12, 23, 6, "gold word"], ["光", 20, 17, 12, "purple"], ["SAN", 28, 28, 3, "purple word"],
+  ["武", 36, 19, 9, "purple"], ["影", 44, 25, 15, "purple"], ["NAKARU", 52, 18, 5, "gold word"], ["月", 60, 24, 11, "purple"],
+  ["火", 68, 16, 2, "gold"], ["SAN", 76, 27, 8, "purple word"], ["道", 84, 20, 14, "gold"], ["和", 92, 26, 4, "purple"],
+  ["NAKARU", 8, 31, 17, "gold word"], ["夢", 32, 22, 20, "purple"], ["光", 57, 29, 22, "gold"], ["SAN", 88, 18, 19, "purple word"]
 ];
 
 const demoPosts = [
@@ -1950,6 +2127,15 @@ const state = {
   socialStatus: "",
   socialChannel: null,
   notifications: [],
+  notificationsOpen: false,
+  notificationStatus: "",
+  notificationPermission: "Notification" in window ? Notification.permission : "unsupported",
+  notificationSaving: false,
+  likedPosts: readLocal("nakaru-liked-posts", []),
+  commentingPostId: "",
+  commentDrafts: {},
+  postComments: {},
+  postActionStatus: "",
   authMode: "signin",
   authStatus: "",
   authLoading: false,
@@ -2330,16 +2516,142 @@ function notificationText(type, fallback) {
     accepted: "Friend request accepted",
     message: "New message",
     call: "Incoming call",
-    live: "Live room invite"
+    "video-call": "Incoming video call",
+    "audio-call": "Incoming audio call",
+    live: "Live room invite",
+    "live-invite": "Live room invite"
   };
   return map[type] || fallback || "Notification";
 }
 
 function addNotification(type, text, refId = "") {
+  const item = { id: crypto.randomUUID(), type, text: text || notificationText(type), refId, created_at: new Date().toISOString(), read: false };
   state.notifications = [
-    { id: crypto.randomUUID(), type, text: text || notificationText(type), refId, created_at: new Date().toISOString(), read: false },
+    item,
     ...state.notifications
   ].slice(0, 20);
+  showDeviceNotification(item);
+}
+
+function notificationTarget(type) {
+  if (type === "request" || type === "accepted") return "friend-requests";
+  if (type === "message") return "messages";
+  if (type === "call" || type === "video-call" || type === "audio-call") return "calls";
+  if (type === "live" || type === "live-invite") return "live";
+  return "home";
+}
+
+function notificationTitle(type) {
+  const map = {
+    request: "New friend request",
+    accepted: "Friend request accepted",
+    message: "New Nakaru-San message",
+    call: "Incoming Nakaru-San call",
+    "video-call": "Incoming video call",
+    "audio-call": "Incoming audio call",
+    live: "Live room invite",
+    "live-invite": "Live room invite"
+  };
+  return map[type] || "Nakaru-San";
+}
+
+function isUrgentNotification(type) {
+  return ["call", "video-call", "audio-call", "live", "live-invite", "request"].includes(type);
+}
+
+async function showDeviceNotification(item) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.ready : null;
+    const urgent = isUrgentNotification(item.type);
+    const options = {
+      body: item.text,
+      icon: "./icons/icon-192.png",
+      badge: "./icons/maskable-192.png",
+      tag: `nakaru-${item.type}-${item.refId || item.id}`,
+      renotify: urgent,
+      requireInteraction: urgent,
+      data: { page: notificationTarget(item.type), refId: item.refId || "" }
+    };
+    if (registration?.showNotification) {
+      registration.showNotification(notificationTitle(item.type), options);
+    } else {
+      new Notification(notificationTitle(item.type), options);
+    }
+  } catch (error) {
+    console.warn("Device notification failed", error);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function savePushSubscription(registration) {
+  if (!supabaseClient || !state.user || !config.vapidPublicKey || !registration?.pushManager) return;
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey)
+  });
+  const { error } = await supabaseClient.from("push_subscriptions").upsert({
+    user_id: state.user.id,
+    endpoint: subscription.endpoint,
+    subscription: subscription.toJSON(),
+    user_agent: navigator.userAgent,
+    updated_at: new Date().toISOString()
+  }, { onConflict: "endpoint" });
+  if (error) throw error;
+}
+
+async function enableNotifications() {
+  if (state.notificationSaving) return;
+  state.notificationSaving = true;
+  state.notificationStatus = "Requesting notification permission...";
+  render();
+  try {
+    if (!("Notification" in window)) {
+      state.notificationStatus = "This browser does not support notifications.";
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    state.notificationPermission = permission;
+    if (permission !== "granted") {
+      state.notificationStatus = "Notifications were not enabled. You can allow them in your browser settings.";
+      return;
+    }
+    const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.ready : null;
+    if (registration && config.vapidPublicKey) {
+      await savePushSubscription(registration);
+      state.notificationStatus = "Notifications are enabled on this device.";
+    } else if (registration) {
+      state.notificationStatus = "Notifications are enabled while the app is open. Closed-app push needs a VAPID key and Web Push sender.";
+    } else {
+      state.notificationStatus = "Notifications are enabled for this browser session.";
+    }
+    showDeviceNotification({ id: "test", type: "message", text: "Nakaru-San notifications are ready.", refId: "" });
+  } catch (error) {
+    console.error("Notification setup failed", error);
+    state.notificationStatus = "Notifications could not be enabled on this device.";
+  } finally {
+    state.notificationSaving = false;
+    render();
+  }
+}
+
+function toggleNotifications() {
+  state.notificationsOpen = !state.notificationsOpen;
+  if (state.notificationsOpen) {
+    state.notifications = state.notifications.map((item) => ({ ...item, read: true }));
+  }
+  render();
+}
+
+function openNotification(type) {
+  state.notificationsOpen = false;
+  setPage(notificationTarget(type));
 }
 
 function profileSelectColumns(includeBanner = true) {
@@ -2496,13 +2808,31 @@ function drawDragonBackground(time = 0) {
   const height = window.innerHeight;
   ctx.clearRect(0, 0, width, height);
 
-  const total = 38;
+  const starPulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.0009) * 0.5;
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  const starCount = 30;
+  for (let index = 0; index < starCount; index += 1) {
+    const x = (index * 173 + (dragonReducedMotion ? 0 : time * (0.006 + index * 0.00012))) % (width + 140) - 70;
+    const y = (index * 97 + (dragonReducedMotion ? 0 : time * (0.003 + index * 0.00008))) % (height + 120) - 60;
+    const size = 0.7 + (index % 5) * 0.38 + starPulse * 0.45;
+    ctx.fillStyle = index % 3 === 0 ? "rgba(96, 165, 250, 0.42)" : "rgba(186, 230, 253, 0.34)";
+    ctx.shadowColor = "rgba(56, 189, 248, 0.42)";
+    ctx.shadowBlur = 10 + size * 4;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  const total = 44;
   const points = Array.from({ length: total }, (_, index) => dragonPoint(index, total, time, width, height));
   const bodyGradient = ctx.createLinearGradient(0, 0, width, height);
-  bodyGradient.addColorStop(0, "rgba(11, 11, 18, 0.16)");
-  bodyGradient.addColorStop(0.35, "rgba(124, 60, 255, 0.28)");
-  bodyGradient.addColorStop(0.72, "rgba(250, 204, 21, 0.2)");
-  bodyGradient.addColorStop(1, "rgba(124, 60, 255, 0.18)");
+  bodyGradient.addColorStop(0, "rgba(6, 7, 13, 0.24)");
+  bodyGradient.addColorStop(0.28, "rgba(124, 60, 255, 0.38)");
+  bodyGradient.addColorStop(0.55, "rgba(56, 189, 248, 0.16)");
+  bodyGradient.addColorStop(0.78, "rgba(250, 204, 21, 0.26)");
+  bodyGradient.addColorStop(1, "rgba(124, 60, 255, 0.22)");
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
@@ -2518,10 +2848,10 @@ function drawDragonBackground(time = 0) {
     const prev = points[index - 1];
     ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
   });
-  ctx.strokeStyle = "rgba(250, 204, 21, 0.08)";
-  ctx.lineWidth = 44;
-  ctx.shadowColor = "rgba(124, 60, 255, 0.26)";
-  ctx.shadowBlur = 34;
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.11)";
+  ctx.lineWidth = 50;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.34)";
+  ctx.shadowBlur = 42;
   ctx.stroke();
 
   ctx.beginPath();
@@ -2534,18 +2864,56 @@ function drawDragonBackground(time = 0) {
     ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
   });
   ctx.strokeStyle = bodyGradient;
-  ctx.lineWidth = 18;
-  ctx.shadowColor = "rgba(250, 204, 21, 0.16)";
-  ctx.shadowBlur = 24;
+  ctx.lineWidth = 22;
+  ctx.shadowColor = "rgba(250, 204, 21, 0.24)";
+  ctx.shadowBlur = 30;
+  ctx.stroke();
+
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+      return;
+    }
+    const prev = points[index - 1];
+    ctx.quadraticCurveTo(prev.x, prev.y, (prev.x + point.x) / 2, (prev.y + point.y) / 2);
+  });
+  ctx.strokeStyle = "rgba(216, 180, 254, 0.24)";
+  ctx.lineWidth = 5;
+  ctx.shadowColor = "rgba(56, 189, 248, 0.22)";
+  ctx.shadowBlur = 18;
   ctx.stroke();
 
   points.forEach((point, index) => {
     if (index % 2 !== 0) return;
-    const size = 10 + (1 - point.progress) * 18;
+    const scale = 1 - point.progress * 0.55;
+    const next = points[Math.min(index + 1, points.length - 1)] || point;
+    const angle = Math.atan2(next.y - point.y, next.x - point.x);
     ctx.save();
     ctx.translate(point.x, point.y);
-    ctx.rotate(point.progress * Math.PI * 3 + time * 0.00035);
-    ctx.fillStyle = index % 4 === 0 ? "rgba(250, 204, 21, 0.18)" : "rgba(124, 60, 255, 0.2)";
+    ctx.rotate(angle + Math.PI / 2);
+    ctx.strokeStyle = index % 4 === 0 ? "rgba(250, 204, 21, 0.28)" : "rgba(168, 85, 247, 0.3)";
+    ctx.lineWidth = Math.max(1.2, 3.1 * scale);
+    ctx.beginPath();
+    ctx.moveTo(-16 * scale, -7 * scale);
+    ctx.quadraticCurveTo(0, 8 * scale, 16 * scale, -7 * scale);
+    ctx.moveTo(-13 * scale, 4 * scale);
+    ctx.quadraticCurveTo(0, -8 * scale, 13 * scale, 4 * scale);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  points.forEach((point, index) => {
+    if (index % 3 !== 0 || index < 4) return;
+    const size = 8 + (1 - point.progress) * 16;
+    const next = points[Math.min(index + 1, points.length - 1)] || point;
+    const angle = Math.atan2(next.y - point.y, next.x - point.x);
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    ctx.rotate(angle - Math.PI / 2);
+    ctx.fillStyle = index % 6 === 0 ? "rgba(250, 204, 21, 0.24)" : "rgba(124, 60, 255, 0.26)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, -size);
     ctx.lineTo(size * 0.58, 0);
@@ -2553,33 +2921,67 @@ function drawDragonBackground(time = 0) {
     ctx.lineTo(-size * 0.58, 0);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     ctx.restore();
   });
 
   const head = points[0];
+  const neck = points[1] || head;
+  const headAngle = Math.atan2(head.y - neck.y, head.x - neck.x);
   const pulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.003) * 0.5;
   ctx.translate(head.x, head.y);
-  ctx.rotate(time * 0.00045);
-  ctx.fillStyle = `rgba(11, 11, 18, ${0.2 + pulse * 0.08})`;
-  ctx.strokeStyle = "rgba(250, 204, 21, 0.28)";
-  ctx.lineWidth = 2;
-  ctx.shadowColor = "rgba(124, 60, 255, 0.32)";
-  ctx.shadowBlur = 22;
+  ctx.rotate(headAngle);
+  ctx.fillStyle = `rgba(8, 8, 15, ${0.3 + pulse * 0.1})`;
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.4)";
+  ctx.lineWidth = 2.3;
+  ctx.shadowColor = "rgba(124, 60, 255, 0.5)";
+  ctx.shadowBlur = 30;
   ctx.beginPath();
-  ctx.moveTo(28, 0);
-  ctx.lineTo(5, 14);
-  ctx.lineTo(-24, 8);
-  ctx.lineTo(-10, 0);
-  ctx.lineTo(-24, -8);
-  ctx.lineTo(5, -14);
+  ctx.moveTo(36, 0);
+  ctx.lineTo(14, 14);
+  ctx.lineTo(-20, 17);
+  ctx.lineTo(-30, 7);
+  ctx.lineTo(-12, 0);
+  ctx.lineTo(-30, -7);
+  ctx.lineTo(-20, -17);
+  ctx.lineTo(14, -14);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(250, 204, 21, 0.42)";
+  ctx.strokeStyle = "rgba(250, 204, 21, 0.38)";
+  ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.arc(9, -5, 2.8, 0, Math.PI * 2);
-  ctx.arc(9, 5, 2.8, 0, Math.PI * 2);
+  ctx.moveTo(-3, -15);
+  ctx.lineTo(-18, -35);
+  ctx.lineTo(6, -22);
+  ctx.moveTo(-3, 15);
+  ctx.lineTo(-18, 35);
+  ctx.lineTo(6, 22);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(216, 180, 254, 0.42)";
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(15, -7);
+  ctx.bezierCurveTo(52, -30, 84, -12, 118, -32);
+  ctx.moveTo(15, 7);
+  ctx.bezierCurveTo(52, 30, 84, 12, 118, 32);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(56, 189, 248, 0.28)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(27, -3);
+  ctx.lineTo(48, -9);
+  ctx.moveTo(27, 3);
+  ctx.lineTo(48, 9);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(250, 204, 21, 0.74)";
+  ctx.beginPath();
+  ctx.arc(14, -5.5, 3.2, 0, Math.PI * 2);
+  ctx.arc(14, 5.5, 3.2, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -2777,7 +3179,7 @@ async function loadPosts() {
   if (!supabaseClient) return;
   const { data, error } = await supabaseClient
     .from("posts")
-    .select("id,user_id,content,post_type,media_url,youtube_url,youtube_embed_url,created_at,updated_at")
+    .select("id,user_id,content,post_type,media_url,youtube_url,youtube_embed_url,likes,comments_count,created_at,updated_at")
     .order("created_at", { ascending: false })
     .limit(80);
   if (error) {
@@ -3014,7 +3416,12 @@ function subscribeSocialRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "friend_requests" }, async (payload) => {
       const row = payload.new || payload.old || {};
       if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
-      addNotification("request", row.receiver_id === state.user.id ? "You have a new friend request." : "A friend request was updated.", row.id);
+      if (row.receiver_id === state.user.id && row.status === "pending") {
+        addNotification("request", "You have a new friend request.", row.id);
+      }
+      if (row.sender_id === state.user.id && row.status === "accepted") {
+        addNotification("accepted", "Your friend request was accepted.", row.id);
+      }
       await loadFriendRequests();
       render();
     })
@@ -3032,10 +3439,23 @@ function subscribeSocialRealtime() {
       if (row.conversation_id === state.activeConversationId) await loadDirectMessages();
       render();
     })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, async (payload) => {
+      const row = payload.new || {};
+      if (![row.sender_id, row.recipient_id].includes(state.user.id)) return;
+      if (row.sender_id !== state.user.id) addNotification("message", "You have a new direct message.", row.id);
+      if (row.recipient_id === state.user.id || row.sender_id === state.activeDmRecipient) await loadDirectMessages();
+      render();
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "calls" }, async (payload) => {
       const row = payload.new || payload.old || {};
       if (![row.caller_id, row.receiver_id].includes(state.user.id)) return;
-      if (row.receiver_id === state.user.id && row.status === "ringing") addNotification("call", "Incoming call.", row.id);
+      if (row.receiver_id === state.user.id && row.status === "ringing") {
+        const isAudio = row.call_type === "audio";
+        addNotification(isAudio ? "audio-call" : "video-call", `Incoming ${isAudio ? "audio" : "video"} call.`, row.id);
+      }
+      if (row.caller_id === state.user.id && row.status === "accepted") {
+        addNotification("call", `Your ${row.call_type === "audio" ? "audio" : "video"} call was accepted.`, row.id);
+      }
       await loadCalls();
       render();
     })
@@ -3046,7 +3466,8 @@ function subscribeSocialRealtime() {
     .on("postgres_changes", { event: "*", schema: "public", table: "live_room_invites" }, async (payload) => {
       const row = payload.new || payload.old || {};
       if (![row.sender_id, row.receiver_id].includes(state.user.id)) return;
-      if (row.receiver_id === state.user.id && row.status === "pending") addNotification("live", "You were invited to a live room.", row.id);
+      if (row.receiver_id === state.user.id && row.status === "pending") addNotification("live-invite", "You were invited to join a live room.", row.id);
+      if (row.sender_id === state.user.id && row.status === "accepted") addNotification("live-invite", "Your live room invite was accepted.", row.id);
       await loadLiveRoomInvites();
       render();
     })
@@ -3947,7 +4368,7 @@ async function savePost(postInput) {
     let { data, error } = await supabaseClient
       .from("posts")
       .insert(dbPost)
-      .select("id,user_id,content,post_type,media_url,youtube_url,youtube_embed_url,created_at,updated_at")
+      .select("id,user_id,content,post_type,media_url,youtube_url,youtube_embed_url,likes,comments_count,created_at,updated_at")
       .single();
     if (error && isMissingColumnError(error, "post_type")) {
       const { post_type, ...fallbackPost } = dbPost;
@@ -3963,6 +4384,134 @@ async function savePost(postInput) {
     state.posts = [normalized, ...state.posts];
     writeLocal("nakaru-posts", state.posts);
     return normalized;
+  }
+}
+
+function isPostLiked(postId) {
+  return state.likedPosts.includes(postId);
+}
+
+function updatePostInState(postId, updates) {
+  state.posts = state.posts.map((post) => post.id === postId ? { ...post, ...updates } : post);
+}
+
+async function toggleLikePost(postId) {
+  const post = state.posts.find((item) => item.id === postId);
+  if (!post) return;
+  if (!state.user) {
+    state.postActionStatus = "Sign in to like posts.";
+    render();
+    return;
+  }
+  const liked = isPostLiked(postId);
+  const nextLikes = Math.max(0, Number(post.likes || 0) + (liked ? -1 : 1));
+  state.likedPosts = liked ? state.likedPosts.filter((id) => id !== postId) : [...state.likedPosts, postId];
+  writeLocal("nakaru-liked-posts", state.likedPosts);
+  updatePostInState(postId, { likes: nextLikes });
+  state.postActionStatus = liked ? "Like removed." : "Post liked.";
+  render();
+
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.rpc("set_post_like", { target_post_id: postId, should_like: !liked });
+    if (error) throw error;
+    if (typeof data === "number") updatePostInState(postId, { likes: data });
+  } catch (error) {
+    console.error("Like update failed", error);
+    state.postActionStatus = "Like could not be saved. Run the latest Supabase SQL if this keeps happening.";
+    render();
+  }
+}
+
+async function toggleComments(postId) {
+  state.commentingPostId = state.commentingPostId === postId ? "" : postId;
+  state.postActionStatus = "";
+  if (state.commentingPostId && supabaseClient) {
+    await loadPostComments(postId);
+  }
+  render();
+}
+
+async function loadPostComments(postId) {
+  if (!supabaseClient || !postId) return;
+  const { data, error } = await supabaseClient
+    .from("post_comments")
+    .select("id,post_id,user_id,author,content,created_at")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true })
+    .limit(80);
+  if (error) {
+    console.error("Post comments load failed", error);
+    state.postActionStatus = "Comments could not load right now.";
+    return;
+  }
+  state.postComments = { ...state.postComments, [postId]: data || [] };
+  updatePostInState(postId, { comments_count: (data || []).length });
+}
+
+function updateCommentDraft(postId, value) {
+  state.commentDrafts = { ...state.commentDrafts, [postId]: value };
+}
+
+async function submitPostComment(event, postId) {
+  event.preventDefault();
+  const content = String(state.commentDrafts[postId] || event.currentTarget.querySelector("input")?.value || "").trim();
+  if (!content) return;
+  if (!state.user) {
+    state.postActionStatus = "Sign in to comment.";
+    render();
+    return;
+  }
+  const author = state.profile.display_name || state.profile.username || "Nakaru Member";
+  const localComment = { id: crypto.randomUUID(), post_id: postId, user_id: state.user.id, author, content, created_at: new Date().toISOString() };
+  try {
+    let savedComment = localComment;
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from("post_comments")
+        .insert({ post_id: postId, user_id: state.user.id, author, content })
+        .select("id,post_id,user_id,author,content,created_at")
+        .single();
+      if (error) throw error;
+      savedComment = data;
+    }
+    const nextComments = [...(state.postComments[postId] || []), savedComment];
+    state.postComments = { ...state.postComments, [postId]: nextComments };
+    state.commentDrafts = { ...state.commentDrafts, [postId]: "" };
+    updatePostInState(postId, { comments_count: nextComments.length });
+    state.postActionStatus = "Comment posted.";
+  } catch (error) {
+    console.error("Comment failed", error);
+    state.postActionStatus = "Comment could not be posted. Run the latest Supabase SQL if this keeps happening.";
+  } finally {
+    render();
+  }
+}
+
+async function sharePost(postId) {
+  const post = state.posts.find((item) => item.id === postId);
+  if (!post) return;
+  const shareUrl = `${window.location.origin}${window.location.pathname}#feed`;
+  const shareData = {
+    title: "Nakaru-San post",
+    text: post.content || "Check out this Nakaru-San post.",
+    url: shareUrl
+  };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      state.postActionStatus = "Share sheet opened.";
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
+      state.postActionStatus = "Post link copied.";
+    } else {
+      state.postActionStatus = "Copy this link to share: " + shareUrl;
+    }
+  } catch (error) {
+    console.warn("Share canceled or failed", error);
+    state.postActionStatus = "Share was canceled.";
+  } finally {
+    render();
   }
 }
 
@@ -4707,13 +5256,29 @@ function renderPost(post) {
   const postType = post.post_type || post.type || "text";
   const authorProfile = profileById(post.user_id);
   const postProfile = authorProfile.id ? authorProfile : { display_name: post.author || "Nakaru Member" };
+  const liked = isPostLiked(post.id);
+  const commentsOpen = state.commentingPostId === post.id;
+  const comments = state.postComments[post.id] || [];
   return `
     <article class="post-card">
       <div class="post-head">${profileIdentityButton({ ...postProfile, display_name: postProfile.display_name || post.author || postProfile.username }, "")}<span>${formatTime(post.created_at)}</span></div>
       <p>${escapeHtml(post.content || "")}</p>
       ${postType === "youtube" && post.youtube_embed_url ? `<div class="video-frame"><iframe src="${escapeHtml(post.youtube_embed_url)}" title="Nakaru-San YouTube post" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
       ${postType === "video" && post.media_url ? `<div class="video-frame uploaded-video"><video src="${escapeHtml(post.media_url)}" controls playsinline preload="metadata"></video></div>` : ""}
-      <div class="post-actions"><button type="button">${post.likes || 0} Likes</button><button type="button">${post.comments_count || post.comments || 0} Comments</button><button type="button">Reply</button></div>
+      <div class="post-actions">
+        <button class="${liked ? "active" : ""}" onclick="toggleLikePost('${post.id}')" type="button">${liked ? "Liked" : "Like"} · ${post.likes || 0}</button>
+        <button class="${commentsOpen ? "active" : ""}" onclick="toggleComments('${post.id}')" type="button">Comment · ${post.comments_count || post.comments || comments.length || 0}</button>
+        <button onclick="sharePost('${post.id}')" type="button">Share</button>
+      </div>
+      ${commentsOpen ? `
+        <div class="comment-panel">
+          <div class="comment-list">${comments.length ? comments.map((comment) => `<div class="comment-item"><strong>${escapeHtml(comment.author || profileName(profileById(comment.user_id)))}</strong><p>${escapeHtml(comment.content || "")}</p></div>`).join("") : `<p class="empty-state">No comments yet. Start the conversation.</p>`}</div>
+          <form class="comment-form" onsubmit="submitPostComment(event, '${post.id}')">
+            <input value="${escapeHtml(state.commentDrafts[post.id] || "")}" oninput="updateCommentDraft('${post.id}', this.value)" placeholder="Write a comment" />
+            <button class="primary-action" type="submit">Post</button>
+          </form>
+        </div>
+      ` : ""}
     </article>
   `;
 }
@@ -4925,6 +5490,7 @@ function renderPage() {
         ${renderLiveNowStrip()}
         <form class="composer" onsubmit="createTextPost(event)">${avatar(state.profile)}<input placeholder="Share an anime theory, gaming update, or watch-party plan" /><button class="primary-action" type="submit">Post</button></form>
         ${state.postStatus ? `<p class="status-text">${escapeHtml(state.postStatus)}</p>` : ""}
+        ${state.postActionStatus ? `<p class="status-text">${escapeHtml(state.postActionStatus)}</p>` : ""}
         <div class="feed-list">${state.posts.map(renderPost).join("")}</div>
       </section>
       <aside class="panel sidebar-panel"><h3>Search</h3><label class="search-box"><input placeholder="Search users or posts" /></label><h3>Suggested members</h3><div class="mini-user">${avatar({ display_name: "Ami Arc" })}<div><strong>Ami Arc</strong><span>@AmiArc</span></div></div><div class="mini-user">${avatar({ display_name: "Nova Ink" })}<div><strong>Nova Ink</strong><span>@NovaInk</span></div></div></aside>
@@ -4942,7 +5508,7 @@ function renderPage() {
       <aside class="panel sidebar-panel"><h3>Room topic</h3><p>${escapeHtml(activeRoom.topic)}</p></aside>
     </main>
   `;
-  if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div><div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
+  if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div>${state.postActionStatus ? `<p class="status-text">${escapeHtml(state.postActionStatus)}</p>` : ""}<div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
   if (state.page === "public-profile") return publicProfileView(profileById(state.publicProfileId));
   if (state.page === "edit-profile") return `<main class="page-grid">${state.user ? profileCard(state.profileEditing) : authView()}</main>`;
   if (state.page === "search") return `
@@ -5119,7 +5685,7 @@ function renderPage() {
 function renderKanjiRain() {
   return `
     <div class="kanji-rain" aria-hidden="true">
-      ${kanjiRainItems.map(([char, left, duration, delay, tone]) => `<span class="${tone === "gold" ? "gold" : "purple"}" style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s;">${char}</span>`).join("")}
+      ${kanjiWordRainItems.map(([char, left, duration, delay, tone]) => `<span class="${escapeHtml(tone)}" style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s;">${escapeHtml(char)}</span>`).join("")}
     </div>
   `;
 }
@@ -5141,7 +5707,9 @@ function renderLogoSidebar(nav) {
       <div class="sidebar-cta">
         <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
         <button class="ghost-action" onclick="installNakaruApp()" type="button">${state.installAvailable ? "Install Nakaru-San App" : "Install App"}</button>
+        <button class="ghost-action" onclick="enableNotifications()" ${state.notificationSaving ? "disabled" : ""} type="button">${state.notificationSaving ? "Enabling..." : "Enable Notifications"}</button>
         ${state.installStatus ? `<small class="install-hint">${escapeHtml(state.installStatus)}</small>` : ""}
+        ${state.notificationStatus ? `<small class="install-hint">${escapeHtml(state.notificationStatus)}</small>` : ""}
       </div>
     </aside>
   `;
@@ -5167,10 +5735,28 @@ function renderMerchBanner() {
   `;
 }
 
+function renderNotificationTray() {
+  if (!state.notificationsOpen) return "";
+  return `
+    <section class="notification-tray" aria-label="Nakaru-San notifications">
+      <div class="panel-title inline"><div><span class="eyebrow">Notifications</span><h2>Messages and requests</h2></div><button class="ghost-action" onclick="toggleNotifications()" type="button">Close</button></div>
+      ${state.notificationStatus ? `<p class="status-text">${escapeHtml(state.notificationStatus)}</p>` : ""}
+      <div class="notification-list">${state.notifications.length ? state.notifications.map((item) => `
+        <button class="notification-item" onclick="openNotification('${escapeHtml(item.type)}')" type="button">
+          <strong>${escapeHtml(notificationTitle(item.type))}</strong>
+          <span>${escapeHtml(item.text)}</span>
+          <small>${escapeHtml(formatTime(item.created_at))}</small>
+        </button>
+      `).join("") : `<p class="empty-state">No notifications yet. New messages, requests, calls, and live invites will appear here.</p>`}</div>
+    </section>
+  `;
+}
+
 function render() {
   window.NAKARU_BOOT_RENDERED = true;
   const warnings = visibleBootWarnings();
   const pendingRequestCount = state.incomingRequests.filter((request) => request.status === "pending").length;
+  const unreadNotificationCount = state.notifications.filter((item) => !item.read).length;
   const nav = [
     ["home", "Home"],
     ["feed", "Live Feed"],
@@ -5189,8 +5775,9 @@ function render() {
     <div class="app-shell">
       ${renderDragonBackground()}
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `<button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `<button class="notification-bell ${unreadNotificationCount ? "has-unread" : ""}" onclick="toggleNotifications()" type="button" aria-label="Open notifications">Bell${unreadNotificationCount ? `<b>${unreadNotificationCount}</b>` : ""}</button><button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
+      ${renderNotificationTray()}
       ${renderMerchBanner()}
       <div class="version-badge">${version}</div>
       ${warnings.length ? `<div class="demo-banner">${escapeHtml(warnings[warnings.length - 1])}</div>` : ""}
@@ -5220,6 +5807,11 @@ window.cancelProfile = cancelProfile;
 window.createTextPost = createTextPost;
 window.postYouTube = postYouTube;
 window.postDeviceVideo = postDeviceVideo;
+window.toggleLikePost = toggleLikePost;
+window.toggleComments = toggleComments;
+window.updateCommentDraft = updateCommentDraft;
+window.submitPostComment = submitPostComment;
+window.sharePost = sharePost;
 window.sendRoomMessage = sendRoomMessage;
 window.setDmRecipient = setDmRecipient;
 window.sendDm = sendDm;
@@ -5244,6 +5836,9 @@ window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.signOut = signOut;
 window.installNakaruApp = installNakaruApp;
+window.enableNotifications = enableNotifications;
+window.toggleNotifications = toggleNotifications;
+window.openNotification = openNotification;
 
 init();
 

@@ -1,14 +1,31 @@
-﻿NAKARU-SAN INSTALLABLE APP / PWA PACKAGE
+Nakaru-San package: notifications, reactions, comments, sharing, dragon polish
 
-What changed:
-- Nakaru-San can now be installed on phones as a Progressive Web App.
-- Added manifest.webmanifest, service-worker.js, offline.html, and app icon files.
-- Added an Install App button inside the logo sidebar.
-- iPhone users install from Safari Share -> Add to Home Screen.
-- Android users install from Chrome menu -> Install app, or the sidebar button when available.
+This clean package contains the current working Nakaru-San web app files for Render/GitHub deployment.
 
-Render Web Service settings:
-Build Command: npm run build
-Start Command: npm start
+What changed in this package:
+- More realistic purple/black/gold animated dragon background.
+- Slightly brighter dark anime UI with a subtle rotating blue starfield.
+- Sharp gold NAKARU word rain and separate purple SAN word rain mixed into the kanji rain.
+- In-app notification tray and topbar badge for friend requests, messages, incoming audio calls, incoming video calls, accepted calls, and live room invites.
+- Browser/PWA notification permission support plus service-worker push/click handling.
+- Like, comment, and share buttons now have real click handlers.
+- Supabase schema adds post likes, comment count refresh, and push subscription storage.
 
-After uploading to GitHub, use Render Manual Deploy -> Clear build cache & deploy.
+Important:
+- Run supabase/schema.sql in Supabase SQL Editor before expecting likes, persistent comment counts, and push subscription storage to work.
+- True notifications while the app is completely closed require a server-side Web Push sender and VAPID keys. This package stores subscriptions and supports service-worker push, but a static frontend cannot wake a closed device by itself.
+
+Render Static Site:
+- Build Command: npm run build
+- Publish Directory: dist
+- Start Command: leave blank
+
+Render Web Service:
+- Build Command: npm run build
+- Start Command: npm start
+
+Environment variables:
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY
+- VITE_APP_URL
+- VITE_VAPID_PUBLIC_KEY optional, only after Web Push server/VAPID setup

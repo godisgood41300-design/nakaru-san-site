@@ -16,6 +16,7 @@ VITE_SUPABASE_ANON_KEY=your Supabase publishable/anon key
 VITE_APP_URL=https://nakaru-san-site-1.onrender.com
 VITE_INSTAGRAM_AUTH_URL=
 VITE_SOCIAL_AUTH_PROVIDERS=
+VITE_VAPID_PUBLIC_KEY=
 
 Important:
 - Upload the unzipped files to the root of the GitHub repository.
@@ -24,6 +25,7 @@ Important:
 - In Render, use Manual Deploy -> Clear build cache & deploy after changing files.
 - The Start Command must be npm start. If Render asks for a Publish Directory, you are in Static Site mode instead of Web Service mode.
 - Nakaru-San is now installable as a phone app/PWA. After deployment, iPhone users install from Safari Share -> Add to Home Screen. Android users install from Chrome menu -> Install app. The sidebar Install App button also helps where browser install prompts are supported.
+- The sidebar Enable Notifications button turns on browser/PWA notifications for messages, friend requests, incoming audio/video calls, and live invites while the app is open or backgrounded. True closed-app push notifications need a Web Push sender plus VAPID keys; set VITE_VAPID_PUBLIC_KEY only after you have that backend sender ready.
 
 Supabase:
 - Run supabase/schema.sql in the Supabase SQL Editor after deploying this package.

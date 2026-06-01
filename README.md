@@ -59,6 +59,7 @@ VITE_SUPABASE_ANON_KEY=your-public-anon-key
 VITE_APP_URL=https://your-domain.com
 VITE_INSTAGRAM_AUTH_URL=
 VITE_SOCIAL_AUTH_PROVIDERS=
+VITE_VAPID_PUBLIC_KEY=
 ```
 
 Use the Supabase anon/publishable key only. Never put the service role secret key in frontend env variables.
@@ -72,6 +73,7 @@ SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
 APP_URL=https://your-domain.com
 INSTAGRAM_AUTH_URL=
 SOCIAL_AUTH_PROVIDERS=
+VAPID_PUBLIC_KEY=
 ```
 
 If you deploy on Render as a Web Service, `/config.js` is generated from Render's live environment variables at runtime. After changing Render environment variables, restart or redeploy the Web Service, then open `/config.js` on your live site.
@@ -164,6 +166,13 @@ On Android:
 3. Tap Install app or Add to Home screen.
 
 The sidebar also includes an Install App button. On supported Android/Chrome browsers it can open the install prompt directly. On iPhone it shows the Safari install instructions.
+
+## Notifications
+
+- In-app notifications appear for new friend requests, accepted requests, messages, incoming video calls, incoming audio calls, accepted calls, and live room invites while the app is open.
+- Browser/PWA notifications can be enabled from the sidebar with Enable Notifications.
+- True notifications while the app is fully closed require Web Push delivery from a server or edge function using VAPID keys. The frontend stores the browser push subscription in `push_subscriptions` when `VITE_VAPID_PUBLIC_KEY` is configured, but a server-side sender is still needed to wake closed apps.
+- Without a Web Push sender, notifications still work while Nakaru-San is open or running in the browser/PWA background.
 
 ## Deploy on Render as a Static Site
 

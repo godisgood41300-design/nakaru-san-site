@@ -1,4 +1,4 @@
-const CACHE_NAME = "nakaru-san-pwa-20260531-pwa-install";
+const CACHE_NAME = "nakaru-san-pwa-20260601-notifications-reactions-dragon";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -65,4 +65,41 @@ self.addEventListener("fetch", (event) => {
       })
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data?.text() || "You have a new Nakaru-San notification." };
+  }
+  const title = payload.title || "Nakaru-San";
+  const options = {
+    body: payload.body || "You have a new message, request, incoming call, or live room invite.",
+    icon: payload.icon || "./icons/icon-192.png",
+    badge: payload.badge || "./icons/maskable-192.png",
+    tag: payload.tag || "nakaru-notification",
+    renotify: true,
+    requireInteraction: ["video-call", "audio-call", "call", "live-invite", "live"].includes(payload.type),
+    data: payload.data || { page: payload.page || "messages" }
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const page = event.notification.data?.page || "messages";
+  const targetUrl = new URL(`./#${page}`, self.location.origin).href;
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(targetUrl);
+    })
+  );
 });

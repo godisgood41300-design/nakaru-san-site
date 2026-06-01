@@ -121,6 +121,14 @@ create table if not exists public.post_comments (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.post_likes (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  constraint post_likes_unique_user_post unique (post_id, user_id)
+);
+
 create table if not exists public.room_messages (
   id uuid primary key default gen_random_uuid(),
   room_id text not null,
@@ -243,9 +251,20 @@ create table if not exists public.live_room_invites (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique,
+  subscription jsonb not null,
+  user_agent text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.profiles enable row level security;
 alter table public.posts enable row level security;
 alter table public.post_comments enable row level security;
+alter table public.post_likes enable row level security;
 alter table public.room_messages enable row level security;
 alter table public.dm_threads enable row level security;
 alter table public.dm_thread_members enable row level security;
@@ -258,6 +277,7 @@ alter table public.messages enable row level security;
 alter table public.calls enable row level security;
 alter table public.live_rooms enable row level security;
 alter table public.live_room_invites enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 drop policy if exists "profiles readable by everyone" on public.profiles;
 create policy "profiles readable by everyone"
@@ -305,6 +325,89 @@ drop policy if exists "users insert own comments" on public.post_comments;
 create policy "users insert own comments"
 on public.post_comments for insert
 with check (auth.uid() = user_id);
+
+drop policy if exists "post likes readable by everyone" on public.post_likes;
+create policy "post likes readable by everyone"
+on public.post_likes for select
+using (true);
+
+drop policy if exists "users insert own post likes" on public.post_likes;
+create policy "users insert own post likes"
+on public.post_likes for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "users delete own post likes" on public.post_likes;
+create policy "users delete own post likes"
+on public.post_likes for delete
+using (auth.uid() = user_id);
+
+create or replace function public.set_post_like(target_post_id uuid, should_like boolean)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  next_count integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if should_like then
+    insert into public.post_likes (post_id, user_id)
+    values (target_post_id, auth.uid())
+    on conflict (post_id, user_id) do nothing;
+  else
+    delete from public.post_likes
+    where post_id = target_post_id
+    and user_id = auth.uid();
+  end if;
+
+  select count(*)::integer into next_count
+  from public.post_likes
+  where post_id = target_post_id;
+
+  update public.posts
+  set likes = next_count,
+      updated_at = now()
+  where id = target_post_id;
+
+  return next_count;
+end;
+$$;
+
+create or replace function public.refresh_post_comment_count()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_id uuid;
+begin
+  target_id := coalesce(new.post_id, old.post_id);
+  update public.posts
+  set comments_count = (
+    select count(*)::integer
+    from public.post_comments
+    where post_id = target_id
+  ),
+  updated_at = now()
+  where id = target_id;
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists refresh_post_comment_count_after_insert on public.post_comments;
+create trigger refresh_post_comment_count_after_insert
+after insert on public.post_comments
+for each row execute function public.refresh_post_comment_count();
+
+drop trigger if exists refresh_post_comment_count_after_delete on public.post_comments;
+create trigger refresh_post_comment_count_after_delete
+after delete on public.post_comments
+for each row execute function public.refresh_post_comment_count();
 
 drop policy if exists "room messages readable by everyone" on public.room_messages;
 create policy "room messages readable by everyone"
@@ -521,6 +624,27 @@ create policy "invite receivers update invites"
 on public.live_room_invites for update
 using (auth.uid() = receiver_id)
 with check (auth.uid() = receiver_id);
+
+drop policy if exists "users see own push subscriptions" on public.push_subscriptions;
+create policy "users see own push subscriptions"
+on public.push_subscriptions for select
+using (auth.uid() = user_id);
+
+drop policy if exists "users save own push subscriptions" on public.push_subscriptions;
+create policy "users save own push subscriptions"
+on public.push_subscriptions for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "users update own push subscriptions" on public.push_subscriptions;
+create policy "users update own push subscriptions"
+on public.push_subscriptions for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "users delete own push subscriptions" on public.push_subscriptions;
+create policy "users delete own push subscriptions"
+on public.push_subscriptions for delete
+using (auth.uid() = user_id);
 
 do $$
 begin
