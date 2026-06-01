@@ -2872,7 +2872,7 @@ function ensureMusicGraph() {
     musicFeedbackNode = musicAudioContext.createGain();
     musicFilterNode = musicAudioContext.createBiquadFilter();
 
-    musicGainNode.gain.value = 0.035;
+    musicGainNode.gain.value = 0.06;
     musicDelayNode.delayTime.value = 0.34;
     musicFeedbackNode.gain.value = 0.22;
     musicFilterNode.type = "lowpass";
@@ -2947,7 +2947,7 @@ async function startBackgroundMusic() {
     if (context.state === "suspended") await context.resume();
     const now = context.currentTime;
     musicGainNode.gain.cancelScheduledValues(now);
-    musicGainNode.gain.setTargetAtTime(0.035, now, 0.35);
+    musicGainNode.gain.setTargetAtTime(0.06, now, 0.35);
     state.musicEnabled = true;
     state.musicStatus = "Original low-volume anime ambience is playing.";
     scheduleOriginalAnimeAmbience();
