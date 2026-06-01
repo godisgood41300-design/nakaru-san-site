@@ -2,6 +2,10 @@
 
 ## 2026-06-01 - Notifications, reactions, comments, sharing, and dragon polish
 
+- Fixed direct-message thread separation by adding a stable two-user conversation key and resetting message state when switching recipients.
+- Added text/image/video posting from both the Live Feed and Profile feed composers.
+- Added original browser-generated low-volume flute-style anime ambience with a user-controlled toggle, so no copyrighted music file is used.
+- Added soft pink cherry blossom rain to blend with the kanji rain, dragon, and starfield.
 - Made the dragon background more detailed with glowing body scales, horns, whiskers, and a more directional head while keeping it behind the UI.
 - Brightened the dark anime UI slightly and added a subtle rotating blue starfield layer behind the content.
 - Sharpened the kanji rain plus gold `NAKARU` and purple `SAN` word rain so they read cleaner.

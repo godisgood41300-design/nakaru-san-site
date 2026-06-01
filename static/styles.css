@@ -198,6 +198,59 @@ label {
   color: rgba(216, 180, 254, 0.88);
 }
 
+.blossom-rain {
+  position: fixed;
+  inset: -16vh 0 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.72;
+  mix-blend-mode: screen;
+}
+
+.blossom {
+  position: absolute;
+  left: var(--x);
+  top: -12vh;
+  width: calc(18px * var(--size));
+  height: calc(18px * var(--size));
+  animation: blossomFall var(--duration) linear infinite;
+  animation-delay: var(--delay);
+  filter: drop-shadow(0 0 10px rgba(244, 114, 182, 0.62));
+}
+
+.blossom::before,
+.blossom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 228, 236, 0.98) 0 17%, transparent 18%),
+    radial-gradient(circle at 82% 45%, rgba(251, 182, 206, 0.92) 0 18%, transparent 19%),
+    radial-gradient(circle at 65% 84%, rgba(244, 114, 182, 0.86) 0 17%, transparent 18%),
+    radial-gradient(circle at 35% 84%, rgba(251, 207, 232, 0.9) 0 17%, transparent 18%),
+    radial-gradient(circle at 18% 45%, rgba(253, 164, 175, 0.9) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 52%, rgba(250, 204, 21, 0.52) 0 9%, transparent 10%);
+  border-radius: 999px;
+}
+
+.blossom::after {
+  transform: rotate(28deg) scale(0.72);
+  opacity: 0.72;
+}
+
+.blossom-1 {
+  opacity: 0.82;
+}
+
+.blossom-2 {
+  opacity: 0.66;
+}
+
+.blossom-3 {
+  opacity: 0.9;
+}
+
 @keyframes kanjiFall {
   0% {
     transform: translate3d(-12px, -18vh, 0) rotate(-10deg) scale(0.88);
@@ -215,6 +268,24 @@ label {
   }
   100% {
     transform: translate3d(16px, 126vh, 0) rotate(12deg) scale(1.04);
+    opacity: 0;
+  }
+}
+
+@keyframes blossomFall {
+  0% {
+    transform: translate3d(-18px, -14vh, 0) rotate(0deg) scale(0.9);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.84;
+  }
+  52% {
+    transform: translate3d(32px, 58vh, 0) rotate(180deg) scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(-42px, 124vh, 0) rotate(360deg) scale(0.88);
     opacity: 0;
   }
 }
@@ -241,6 +312,10 @@ label {
 
   .kanji-rain span {
     animation-duration: 36s;
+  }
+
+  .blossom {
+    animation-duration: 42s;
   }
 }
 
@@ -1148,6 +1223,19 @@ label {
   border-bottom: 1px solid var(--line);
 }
 
+.media-post-composer {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: stretch;
+}
+
+.media-post-composer textarea {
+  min-height: 68px;
+}
+
+.locked-composer {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
 .post-card {
   display: grid;
   gap: 0.85rem;
@@ -1202,10 +1290,20 @@ label {
 }
 
 .post-image {
+  display: block;
   width: 100%;
   max-height: 520px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #030307;
   border-radius: 8px;
+}
+
+.post-media {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+  background: #030307;
 }
 
 .post-actions {
@@ -1915,6 +2013,7 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .media-post-composer,
   .media-message-form {
     grid-template-columns: 1fr;
   }

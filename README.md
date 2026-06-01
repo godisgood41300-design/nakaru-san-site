@@ -174,6 +174,11 @@ The sidebar also includes an Install App button. On supported Android/Chrome bro
 - True notifications while the app is fully closed require Web Push delivery from a server or edge function using VAPID keys. The frontend stores the browser push subscription in `push_subscriptions` when `VITE_VAPID_PUBLIC_KEY` is configured, but a server-side sender is still needed to wake closed apps.
 - Without a Web Push sender, notifications still work while Nakaru-San is open or running in the browser/PWA background.
 
+## Music and Media
+
+- Live Feed and Profile composers support text posts plus image/video media uploads through the `nakaru-media` Supabase Storage bucket.
+- The Music button plays original browser-generated flute-style ambience through Web Audio. It is not a copyrighted song or uploaded music file, and it only starts after the user taps the button.
+
 ## Deploy on Render as a Static Site
 
 Use this setup for Render Static Site:

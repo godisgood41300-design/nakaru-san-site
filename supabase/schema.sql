@@ -203,9 +203,40 @@ create table if not exists public.friendships (
 create table if not exists public.conversations (
   id uuid primary key default gen_random_uuid(),
   participant_ids uuid[] not null default '{}',
+  conversation_key text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.conversations add column if not exists conversation_key text;
+
+with keyed_conversations as (
+  select
+    conversation.id,
+    (
+      select string_agg(participant_id::text, ':' order by participant_id::text)
+      from unnest(conversation.participant_ids) as participant_id
+    ) as pair_key,
+    row_number() over (
+      partition by (
+        select string_agg(participant_id::text, ':' order by participant_id::text)
+        from unnest(conversation.participant_ids) as participant_id
+      )
+      order by conversation.created_at, conversation.id
+    ) as pair_rank
+  from public.conversations conversation
+  where conversation.conversation_key is null
+  and cardinality(conversation.participant_ids) = 2
+)
+update public.conversations conversation
+set conversation_key = keyed_conversations.pair_key
+from keyed_conversations
+where conversation.id = keyed_conversations.id
+and keyed_conversations.pair_rank = 1;
+
+create unique index if not exists conversations_pair_key_unique_idx
+on public.conversations (conversation_key)
+where conversation_key is not null;
 
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),

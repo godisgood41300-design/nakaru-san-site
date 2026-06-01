@@ -214,6 +214,59 @@ label {
   color: rgba(216, 180, 254, 0.88);
 }
 
+.blossom-rain {
+  position: fixed;
+  inset: -16vh 0 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.72;
+  mix-blend-mode: screen;
+}
+
+.blossom {
+  position: absolute;
+  left: var(--x);
+  top: -12vh;
+  width: calc(18px * var(--size));
+  height: calc(18px * var(--size));
+  animation: blossomFall var(--duration) linear infinite;
+  animation-delay: var(--delay);
+  filter: drop-shadow(0 0 10px rgba(244, 114, 182, 0.62));
+}
+
+.blossom::before,
+.blossom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 228, 236, 0.98) 0 17%, transparent 18%),
+    radial-gradient(circle at 82% 45%, rgba(251, 182, 206, 0.92) 0 18%, transparent 19%),
+    radial-gradient(circle at 65% 84%, rgba(244, 114, 182, 0.86) 0 17%, transparent 18%),
+    radial-gradient(circle at 35% 84%, rgba(251, 207, 232, 0.9) 0 17%, transparent 18%),
+    radial-gradient(circle at 18% 45%, rgba(253, 164, 175, 0.9) 0 18%, transparent 19%),
+    radial-gradient(circle at 50% 52%, rgba(250, 204, 21, 0.52) 0 9%, transparent 10%);
+  border-radius: 999px;
+}
+
+.blossom::after {
+  transform: rotate(28deg) scale(0.72);
+  opacity: 0.72;
+}
+
+.blossom-1 {
+  opacity: 0.82;
+}
+
+.blossom-2 {
+  opacity: 0.66;
+}
+
+.blossom-3 {
+  opacity: 0.9;
+}
+
 @keyframes kanjiFall {
   0% {
     transform: translate3d(-12px, -18vh, 0) rotate(-10deg) scale(0.88);
@@ -231,6 +284,24 @@ label {
   }
   100% {
     transform: translate3d(16px, 126vh, 0) rotate(12deg) scale(1.04);
+    opacity: 0;
+  }
+}
+
+@keyframes blossomFall {
+  0% {
+    transform: translate3d(-18px, -14vh, 0) rotate(0deg) scale(0.9);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.84;
+  }
+  52% {
+    transform: translate3d(32px, 58vh, 0) rotate(180deg) scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(-42px, 124vh, 0) rotate(360deg) scale(0.88);
     opacity: 0;
   }
 }
@@ -257,6 +328,10 @@ label {
 
   .kanji-rain span {
     animation-duration: 36s;
+  }
+
+  .blossom {
+    animation-duration: 42s;
   }
 }
 
@@ -1164,6 +1239,19 @@ label {
   border-bottom: 1px solid var(--line);
 }
 
+.media-post-composer {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: stretch;
+}
+
+.media-post-composer textarea {
+  min-height: 68px;
+}
+
+.locked-composer {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
 .post-card {
   display: grid;
   gap: 0.85rem;
@@ -1218,10 +1306,20 @@ label {
 }
 
 .post-image {
+  display: block;
   width: 100%;
   max-height: 520px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #030307;
   border-radius: 8px;
+}
+
+.post-media {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+  background: #030307;
 }
 
 .post-actions {
@@ -1931,6 +2029,7 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .media-post-composer,
   .media-message-form {
     grid-template-columns: 1fr;
   }
@@ -2033,6 +2132,12 @@ const kanjiWordRainItems = [
   ["NAKARU", 8, 31, 17, "gold word"], ["夢", 32, 22, 20, "purple"], ["光", 57, 29, 22, "gold"], ["SAN", 88, 18, 19, "purple word"]
 ];
 
+const blossomRainItems = [
+  [6, 18, 0, 0.8], [14, 24, 5, 1.1], [22, 20, 11, 0.9], [31, 29, 3, 1.25],
+  [39, 22, 14, 0.75], [47, 31, 8, 1.05], [56, 19, 2, 0.95], [64, 27, 13, 1.2],
+  [72, 21, 6, 0.85], [81, 33, 17, 1.15], [90, 25, 9, 0.9], [97, 30, 20, 0.8]
+];
+
 const demoPosts = [
   {
     id: "post-demo-1",
@@ -2111,6 +2216,7 @@ const state = {
   activeThread: "dm-rae",
   activeDmRecipient: "",
   activeConversationId: "",
+  activeConversationPairKey: "",
   dmMessages: readLocal("nakaru-direct-messages", []),
   dmStatus: "",
   publicProfiles: [],
@@ -2136,6 +2242,7 @@ const state = {
   commentDrafts: {},
   postComments: {},
   postActionStatus: "",
+  postCreating: false,
   authMode: "signin",
   authStatus: "",
   authLoading: false,
@@ -2165,7 +2272,9 @@ const state = {
   liveRoomCreating: false,
   liveRoomJoining: "",
   installAvailable: false,
-  installStatus: ""
+  installStatus: "",
+  musicEnabled: false,
+  musicStatus: ""
 };
 state.savedProfile = { ...state.profile };
 
@@ -2182,6 +2291,14 @@ let dragonContext = null;
 let dragonAnimationStarted = false;
 let dragonReducedMotion = false;
 let deferredInstallPrompt = null;
+let musicAudioContext = null;
+let musicGainNode = null;
+let musicDelayNode = null;
+let musicFeedbackNode = null;
+let musicFilterNode = null;
+let musicTimer = null;
+let musicStep = 0;
+let musicNextTime = 0;
 
 function validHttpUrl(value) {
   try {
@@ -2311,6 +2428,8 @@ function resetPrivateState() {
   state.friends = [];
   state.dmMessages = [];
   state.activeConversationId = "";
+  state.activeConversationPairKey = "";
+  state.activeDmRecipient = "";
   state.notifications = [];
   state.calls = [];
   state.activeCallId = "";
@@ -2738,6 +2857,130 @@ async function installNakaruApp() {
   }
   state.installStatus = "iPhone: open Safari, tap Share, then Add to Home Screen. Android: open Chrome menu, then Install app.";
   render();
+}
+
+function ensureMusicGraph() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    state.musicStatus = "This browser does not support background music.";
+    return null;
+  }
+  if (!musicAudioContext) {
+    musicAudioContext = new AudioContextClass();
+    musicGainNode = musicAudioContext.createGain();
+    musicDelayNode = musicAudioContext.createDelay(2.4);
+    musicFeedbackNode = musicAudioContext.createGain();
+    musicFilterNode = musicAudioContext.createBiquadFilter();
+
+    musicGainNode.gain.value = 0.035;
+    musicDelayNode.delayTime.value = 0.34;
+    musicFeedbackNode.gain.value = 0.22;
+    musicFilterNode.type = "lowpass";
+    musicFilterNode.frequency.value = 3200;
+    musicFilterNode.Q.value = 0.6;
+
+    musicDelayNode.connect(musicFeedbackNode);
+    musicFeedbackNode.connect(musicDelayNode);
+    musicDelayNode.connect(musicFilterNode);
+    musicFilterNode.connect(musicGainNode);
+    musicGainNode.connect(musicAudioContext.destination);
+  }
+  return musicAudioContext;
+}
+
+function playOriginalFluteNote(frequency, startTime, duration, level = 0.05) {
+  if (!musicAudioContext || !musicDelayNode) return;
+  const oscillator = musicAudioContext.createOscillator();
+  const overtone = musicAudioContext.createOscillator();
+  const noteGain = musicAudioContext.createGain();
+  const toneFilter = musicAudioContext.createBiquadFilter();
+
+  oscillator.type = "sine";
+  overtone.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+  overtone.frequency.setValueAtTime(frequency * 2.01, startTime);
+  toneFilter.type = "bandpass";
+  toneFilter.frequency.setValueAtTime(frequency * 2.2, startTime);
+  toneFilter.Q.setValueAtTime(2.1, startTime);
+
+  noteGain.gain.setValueAtTime(0.0001, startTime);
+  noteGain.gain.exponentialRampToValueAtTime(level, startTime + 0.18);
+  noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(toneFilter);
+  overtone.connect(toneFilter);
+  toneFilter.connect(noteGain);
+  noteGain.connect(musicDelayNode);
+  oscillator.start(startTime);
+  overtone.start(startTime);
+  oscillator.stop(startTime + duration + 0.08);
+  overtone.stop(startTime + duration + 0.08);
+}
+
+function scheduleOriginalAnimeAmbience() {
+  if (!musicAudioContext || !state.musicEnabled) return;
+  const scale = [293.66, 329.63, 392.0, 440.0, 493.88, 587.33, 659.25];
+  const phrase = [0, 2, 3, 5, 3, 2, 1, 0, 4, 5, 3, 2];
+  const now = musicAudioContext.currentTime;
+  if (!musicNextTime || musicNextTime < now + 0.2) musicNextTime = now + 0.25;
+
+  while (musicNextTime < now + 8) {
+    const noteIndex = phrase[musicStep % phrase.length];
+    const octave = musicStep % 9 === 0 ? 0.5 : musicStep % 7 === 0 ? 2 : 1;
+    const frequency = scale[noteIndex] * octave;
+    const duration = musicStep % 4 === 0 ? 1.45 : 0.82;
+    const level = musicStep % 5 === 0 ? 0.045 : 0.032;
+    playOriginalFluteNote(frequency, musicNextTime, duration, level);
+    if (musicStep % 6 === 0) playOriginalFluteNote(scale[(noteIndex + 3) % scale.length] * 0.5, musicNextTime + 0.08, 1.8, 0.018);
+    musicNextTime += musicStep % 4 === 0 ? 0.92 : 0.58;
+    musicStep += 1;
+  }
+}
+
+async function startBackgroundMusic() {
+  const context = ensureMusicGraph();
+  if (!context) {
+    render();
+    return;
+  }
+  try {
+    if (context.state === "suspended") await context.resume();
+    const now = context.currentTime;
+    musicGainNode.gain.cancelScheduledValues(now);
+    musicGainNode.gain.setTargetAtTime(0.035, now, 0.35);
+    state.musicEnabled = true;
+    state.musicStatus = "Original low-volume anime ambience is playing.";
+    scheduleOriginalAnimeAmbience();
+    clearInterval(musicTimer);
+    musicTimer = setInterval(scheduleOriginalAnimeAmbience, 1200);
+  } catch (error) {
+    console.error("Music start failed", error);
+    state.musicEnabled = false;
+    state.musicStatus = "Music could not start. Tap again or check browser audio permissions.";
+  }
+  render();
+}
+
+function stopBackgroundMusic() {
+  state.musicEnabled = false;
+  state.musicStatus = "Background music paused.";
+  clearInterval(musicTimer);
+  musicTimer = null;
+  musicNextTime = 0;
+  if (musicGainNode && musicAudioContext) {
+    const now = musicAudioContext.currentTime;
+    musicGainNode.gain.cancelScheduledValues(now);
+    musicGainNode.gain.setTargetAtTime(0.0001, now, 0.25);
+  }
+  render();
+}
+
+function toggleBackgroundMusic() {
+  if (state.musicEnabled) {
+    stopBackgroundMusic();
+  } else {
+    startBackgroundMusic();
+  }
 }
 
 function renderDragonBackground() {
@@ -3328,7 +3571,12 @@ async function loadFriendships() {
   await loadProfilesByIds(friendIds);
   state.friends = friendIds.map(profileById).filter((profile) => profile.id);
   const activeRecipientIsFriend = state.activeDmRecipient && friendIds.includes(state.activeDmRecipient);
-  if (!activeRecipientIsFriend) state.activeDmRecipient = state.friends[0]?.id || "";
+  if (!activeRecipientIsFriend) {
+    state.activeDmRecipient = state.friends[0]?.id || "";
+    state.activeConversationId = "";
+    state.activeConversationPairKey = "";
+    state.dmMessages = [];
+  }
 }
 
 async function loadCalls() {
@@ -3390,23 +3638,58 @@ async function loadLiveRoomInvites() {
 async function ensureConversation(friendId) {
   if (!supabaseClient || !state.user || !friendId) return "";
   const participants = [state.user.id, friendId].sort();
-  if (state.activeConversationId && state.activeDmRecipient === friendId) return state.activeConversationId;
+  const pairKey = participants.join(":");
+  if (state.activeConversationId && state.activeConversationPairKey === pairKey) return state.activeConversationId;
+  let conversation = null;
+  let conversationKeySupported = true;
+
   let { data, error } = await supabaseClient
     .from("conversations")
-    .select("id,participant_ids,created_at,updated_at")
-    .contains("participant_ids", participants)
+    .select("id,participant_ids,conversation_key,created_at,updated_at")
+    .eq("conversation_key", pairKey)
     .maybeSingle();
-  if (error) throw error;
-  if (!data) {
+  if (error && isMissingColumnError(error, "conversation_key")) {
+    conversationKeySupported = false;
+  } else if (error) {
+    throw error;
+  } else {
+    conversation = data;
+  }
+
+  if (!conversation) {
     ({ data, error } = await supabaseClient
       .from("conversations")
-      .insert({ participant_ids: participants })
       .select("id,participant_ids,created_at,updated_at")
-      .single());
+      .contains("participant_ids", participants)
+      .order("created_at", { ascending: true })
+      .limit(20));
     if (error) throw error;
+    conversation = (data || []).find((row) => {
+      const ids = Array.isArray(row.participant_ids) ? row.participant_ids.map(String).sort() : [];
+      return ids.length === 2 && ids[0] === participants[0] && ids[1] === participants[1];
+    });
   }
-  state.activeConversationId = data.id;
-  return data.id;
+
+  if (!conversation) {
+    const insertRow = conversationKeySupported ? { participant_ids: participants, conversation_key: pairKey } : { participant_ids: participants };
+    ({ data, error } = await supabaseClient
+      .from("conversations")
+      .insert(insertRow)
+      .select(conversationKeySupported ? "id,participant_ids,conversation_key,created_at,updated_at" : "id,participant_ids,created_at,updated_at")
+      .single());
+    if (error && conversationKeySupported && isMissingColumnError(error, "conversation_key")) {
+      ({ data, error } = await supabaseClient
+        .from("conversations")
+        .insert({ participant_ids: participants })
+        .select("id,participant_ids,created_at,updated_at")
+        .single());
+    }
+    if (error) throw error;
+    conversation = data;
+  }
+  state.activeConversationId = conversation.id;
+  state.activeConversationPairKey = pairKey;
+  return conversation.id;
 }
 
 function subscribeSocialRealtime() {
@@ -4142,6 +4425,9 @@ async function sendFriendRequest(receiverId) {
     if (isFriend(receiverId)) {
       state.socialStatus = "You are already friends. You can message this member now.";
       state.activeDmRecipient = receiverId;
+      state.activeConversationId = "";
+      state.activeConversationPairKey = "";
+      state.dmMessages = [];
       render();
       return;
     }
@@ -4155,6 +4441,9 @@ async function sendFriendRequest(receiverId) {
       await createFriendshipRows(receiverId);
       state.socialStatus = "You are friends now. Messaging is available.";
       state.activeDmRecipient = receiverId;
+      state.activeConversationId = "";
+      state.activeConversationPairKey = "";
+      state.dmMessages = [];
       await Promise.allSettled([loadFriendRequests(), loadFriendships(), loadPublicProfiles()]);
       render();
       return;
@@ -4199,6 +4488,9 @@ async function respondFriendRequest(requestId, status) {
     if (status === "accepted") {
       await createFriendshipRows(request.sender_id);
       state.activeDmRecipient = request.sender_id;
+      state.activeConversationId = "";
+      state.activeConversationPairKey = "";
+      state.dmMessages = [];
       state.socialStatus = "Friend request accepted.";
     } else {
       state.socialStatus = `Friend request ${status}.`;
@@ -4228,6 +4520,8 @@ async function messageFriend(friendId) {
   }
   state.activeDmRecipient = friendId;
   state.activeConversationId = "";
+  state.activeConversationPairKey = "";
+  state.dmMessages = [];
   state.page = "messages";
   await loadDirectMessages();
   render();
@@ -4235,18 +4529,42 @@ async function messageFriend(friendId) {
 
 async function createTextPost(event) {
   event.preventDefault();
-  const input = event.currentTarget.querySelector("input");
-  const content = input.value.trim();
-  if (!content) return;
+  if (state.postCreating) return;
+  const form = event.currentTarget;
+  const input = form.querySelector("input[name='postText'], textarea[name='postText'], input:not([type='file']), textarea");
+  const fileInput = form.querySelector("input[type='file']");
+  const content = (input?.value || "").trim();
+  const file = fileInput?.files?.[0] || null;
+  if (!content && !file) return;
   if (!state.user) {
     state.postStatus = "Sign in to create a post.";
     render();
     return;
   }
-  await savePost({ post_type: "text", content });
-  input.value = "";
-  state.postStatus = "Post shared.";
+  state.postCreating = true;
+  state.postStatus = file ? "Uploading media..." : "Posting...";
   render();
+  try {
+    let media = { media_url: "", media_type: "", media_name: "" };
+    if (file) {
+      media = await uploadChatMedia(file, `posts/${state.user.id}`);
+    }
+    const postType = media.media_type || "text";
+    await savePost({
+      post_type: postType,
+      content: content || mediaLabel(media.media_type),
+      media_url: media.media_url || null
+    });
+    if (input) input.value = "";
+    if (fileInput) fileInput.value = "";
+    state.postStatus = postType === "text" ? "Post shared." : `${mediaLabel(postType)} posted.`;
+  } catch (error) {
+    console.error("Post create failed", error);
+    state.postStatus = "Post could not be shared. Try a smaller image/video or run the latest Supabase SQL.";
+  } finally {
+    state.postCreating = false;
+    render();
+  }
 }
 
 async function postYouTube(event) {
@@ -4584,6 +4902,11 @@ async function sendRoomMessage(event, roomId = state.activeRoom, statusField = "
 }
 
 async function setDmRecipient(profileId) {
+  if (state.activeDmRecipient !== profileId) {
+    state.activeConversationId = "";
+    state.activeConversationPairKey = "";
+    state.dmMessages = [];
+  }
   state.activeDmRecipient = profileId;
   state.dmStatus = "";
   await loadDirectMessages();
@@ -5264,6 +5587,7 @@ function renderPost(post) {
       <div class="post-head">${profileIdentityButton({ ...postProfile, display_name: postProfile.display_name || post.author || postProfile.username }, "")}<span>${formatTime(post.created_at)}</span></div>
       <p>${escapeHtml(post.content || "")}</p>
       ${postType === "youtube" && post.youtube_embed_url ? `<div class="video-frame"><iframe src="${escapeHtml(post.youtube_embed_url)}" title="Nakaru-San YouTube post" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>` : ""}
+      ${postType === "image" && post.media_url ? `<figure class="post-media"><img class="post-image" src="${escapeHtml(post.media_url)}" alt="Nakaru-San post media" loading="lazy" /></figure>` : ""}
       ${postType === "video" && post.media_url ? `<div class="video-frame uploaded-video"><video src="${escapeHtml(post.media_url)}" controls playsinline preload="metadata"></video></div>` : ""}
       <div class="post-actions">
         <button class="${liked ? "active" : ""}" onclick="toggleLikePost('${post.id}')" type="button">${liked ? "Liked" : "Like"} · ${post.likes || 0}</button>
@@ -5479,6 +5803,20 @@ function renderLiveNowStrip() {
   `;
 }
 
+function renderPostComposer(placeholder = "Share an anime theory, gaming update, or watch-party plan") {
+  if (!state.user) {
+    return `<div class="composer locked-composer">${avatar(state.profile)}<p class="empty-state">Sign in to post text, images, or videos.</p><button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign In</button></div>`;
+  }
+  return `
+    <form class="composer media-post-composer" onsubmit="createTextPost(event)">
+      ${avatar(state.profile)}
+      <textarea name="postText" rows="2" placeholder="${escapeHtml(placeholder)}"></textarea>
+      <label class="attach-button">Media<input type="file" accept="image/*,video/*" /></label>
+      <button class="primary-action" ${state.postCreating ? "disabled" : ""} type="submit">${state.postCreating ? "Posting..." : "Post"}</button>
+    </form>
+  `;
+}
+
 function renderPage() {
   const profilePosts = state.posts.filter((post) => post.user_id === state.user?.id);
   const activeThread = state.threads.find((thread) => thread.id === state.activeThread) || state.threads[0];
@@ -5488,7 +5826,7 @@ function renderPage() {
       <section class="panel">
         <div class="panel-title inline"><div><span class="eyebrow">Public live feed</span><h2>Anime and gaming posts</h2></div><button class="primary-action" onclick="setPage('video')" type="button">Post Video</button></div>
         ${renderLiveNowStrip()}
-        <form class="composer" onsubmit="createTextPost(event)">${avatar(state.profile)}<input placeholder="Share an anime theory, gaming update, or watch-party plan" /><button class="primary-action" type="submit">Post</button></form>
+        ${renderPostComposer("Share text, images, clips, anime theories, or gaming updates")}
         ${state.postStatus ? `<p class="status-text">${escapeHtml(state.postStatus)}</p>` : ""}
         ${state.postActionStatus ? `<p class="status-text">${escapeHtml(state.postActionStatus)}</p>` : ""}
         <div class="feed-list">${state.posts.map(renderPost).join("")}</div>
@@ -5508,7 +5846,7 @@ function renderPage() {
       <aside class="panel sidebar-panel"><h3>Room topic</h3><p>${escapeHtml(activeRoom.topic)}</p></aside>
     </main>
   `;
-  if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div>${state.postActionStatus ? `<p class="status-text">${escapeHtml(state.postActionStatus)}</p>` : ""}<div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
+  if (state.page === "profile") return `<main class="content-layout">${profileCard(false)}<section class="panel"><div class="panel-title"><span class="eyebrow">Profile feed</span><h2>Posts by ${escapeHtml(state.profile.display_name || state.profile.username)}</h2></div>${renderPostComposer("Post text, images, or videos to your profile")}${state.postStatus ? `<p class="status-text">${escapeHtml(state.postStatus)}</p>` : ""}${state.postActionStatus ? `<p class="status-text">${escapeHtml(state.postActionStatus)}</p>` : ""}<div class="feed-list">${profilePosts.length ? profilePosts.map(renderPost).join("") : `<p class="empty-state">No posts yet.</p>`}</div></section></main>`;
   if (state.page === "public-profile") return publicProfileView(profileById(state.publicProfileId));
   if (state.page === "edit-profile") return `<main class="page-grid">${state.user ? profileCard(state.profileEditing) : authView()}</main>`;
   if (state.page === "search") return `
@@ -5690,6 +6028,14 @@ function renderKanjiRain() {
   `;
 }
 
+function renderBlossomRain() {
+  return `
+    <div class="blossom-rain" aria-hidden="true">
+      ${blossomRainItems.map(([left, duration, delay, size], index) => `<span class="blossom blossom-${index % 4}" style="--x:${left}%; --duration:${duration}s; --delay:-${delay}s; --size:${size};"></span>`).join("")}
+    </div>
+  `;
+}
+
 function renderLogoSidebar(nav) {
   return `
     <div class="sidebar-scrim ${state.sidebarOpen ? "open" : ""}" onclick="toggleSidebar(false)" aria-hidden="${state.sidebarOpen ? "false" : "true"}"></div>
@@ -5707,8 +6053,10 @@ function renderLogoSidebar(nav) {
       <div class="sidebar-cta">
         <button class="primary-action" onclick="setPage('${state.user ? "feed" : "edit-profile"}')" type="button">${state.user ? "Start Posting" : "Join the Community"}</button>
         <button class="ghost-action" onclick="installNakaruApp()" type="button">${state.installAvailable ? "Install Nakaru-San App" : "Install App"}</button>
+        <button class="ghost-action" onclick="toggleBackgroundMusic()" type="button">${state.musicEnabled ? "Pause Anime Ambience" : "Play Anime Ambience"}</button>
         <button class="ghost-action" onclick="enableNotifications()" ${state.notificationSaving ? "disabled" : ""} type="button">${state.notificationSaving ? "Enabling..." : "Enable Notifications"}</button>
         ${state.installStatus ? `<small class="install-hint">${escapeHtml(state.installStatus)}</small>` : ""}
+        ${state.musicStatus ? `<small class="install-hint">${escapeHtml(state.musicStatus)}</small>` : ""}
         ${state.notificationStatus ? `<small class="install-hint">${escapeHtml(state.notificationStatus)}</small>` : ""}
       </div>
     </aside>
@@ -5775,7 +6123,8 @@ function render() {
     <div class="app-shell">
       ${renderDragonBackground()}
       ${renderKanjiRain()}
-      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools">${state.user ? `<button class="notification-bell ${unreadNotificationCount ? "has-unread" : ""}" onclick="toggleNotifications()" type="button" aria-label="Open notifications">Bell${unreadNotificationCount ? `<b>${unreadNotificationCount}</b>` : ""}</button><button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
+      ${renderBlossomRain()}
+      <header class="topbar"><button class="brand" onclick="toggleSidebar()" type="button" aria-label="Open Nakaru-San menu"><img src="./nakaru-san-logo.png" alt="" /><span>Nakaru-San</span></button><nav>${nav.map(([id, label]) => `<button class="${state.page === id || (id === "messages" && state.page === "inbox") ? "active" : ""}" onclick="setPage('${id}')" type="button">${label}</button>`).join("")}</nav><form class="top-search" onsubmit="topSearch(event)"><input name="topSearch" value="${escapeHtml(state.topSearch)}" placeholder="Search users, anime images, YouTube" /><button type="submit">Search</button><button type="button" onclick="openReferenceSearch('images', this.form.topSearch.value)" title="Open Google Images">Images</button><button type="button" onclick="openReferenceSearch('youtube', this.form.topSearch.value)" title="Open YouTube search">YouTube</button></form><div class="account-tools"><button class="ghost-action music-toggle" onclick="toggleBackgroundMusic()" type="button">${state.musicEnabled ? "Music On" : "Music"}</button>${state.user ? `<button class="notification-bell ${unreadNotificationCount ? "has-unread" : ""}" onclick="toggleNotifications()" type="button" aria-label="Open notifications">Bell${unreadNotificationCount ? `<b>${unreadNotificationCount}</b>` : ""}</button><button class="avatar-button" onclick="openUserProfile('${state.user.id}')" type="button" aria-label="Open your profile">${avatar({ id: state.user.id, ...state.profile })}</button><button class="ghost-action" onclick="signOut()" ${state.authLoading ? "disabled" : ""} type="button">${state.authLoading ? "Signing out..." : "Sign out"}</button>` : `<button class="primary-action" onclick="setPage('edit-profile')" type="button">Sign in</button>`}</div></header>
       ${renderLogoSidebar(nav)}
       ${renderNotificationTray()}
       ${renderMerchBanner()}
@@ -5836,6 +6185,7 @@ window.startCamera = startCamera;
 window.stopCamera = stopCamera;
 window.signOut = signOut;
 window.installNakaruApp = installNakaruApp;
+window.toggleBackgroundMusic = toggleBackgroundMusic;
 window.enableNotifications = enableNotifications;
 window.toggleNotifications = toggleNotifications;
 window.openNotification = openNotification;
