@@ -3,6 +3,12 @@ Nakaru-San package: closed push, QR app download, louder music, dragon upgrade
 This clean package contains the current working Nakaru-San web app files for Render/GitHub deployment.
 
 What changed in this package:
+- Fixed live/call room separation so room names no longer overwrite WebRTC room ids.
+- Added a join-ready WebRTC handshake retry so remote cameras connect more reliably after another user joins.
+- Prevented Join Current from entering the old shared/default room; it now requires a selected live room.
+- Added more STUN servers for better browser video/audio call connection over Wi-Fi and phone data.
+- Added notification chimes while the app is open, plus browser vibration/default sound hints for push notifications.
+- Added more pink cherry blossoms and throttled the dragon canvas animation to reduce phone/browser slowdown.
 - More realistic purple/black/gold animated dragon background.
 - Slightly brighter dark anime UI with a subtle rotating blue starfield.
 - Sharp gold NAKARU word rain and separate purple SAN word rain mixed into the kanji rain.

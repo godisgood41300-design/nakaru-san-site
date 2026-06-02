@@ -1,4 +1,4 @@
-const version = "20260601-closed-push-qr-dragon";
+const version = "20260601-live-call-performance-fix";
 const config = window.NAKARU_CONFIG || {};
 const socialProviders = [
   { provider: "google", label: "Connect with Google" },
@@ -42,7 +42,10 @@ const kanjiWordRainItems = [
 const blossomRainItems = [
   [6, 18, 0, 0.8], [14, 24, 5, 1.1], [22, 20, 11, 0.9], [31, 29, 3, 1.25],
   [39, 22, 14, 0.75], [47, 31, 8, 1.05], [56, 19, 2, 0.95], [64, 27, 13, 1.2],
-  [72, 21, 6, 0.85], [81, 33, 17, 1.15], [90, 25, 9, 0.9], [97, 30, 20, 0.8]
+  [72, 21, 6, 0.85], [81, 33, 17, 1.15], [90, 25, 9, 0.9], [97, 30, 20, 0.8],
+  [3, 28, 13, 0.72], [10, 35, 21, 1.05], [18, 30, 18, 0.92], [26, 37, 24, 1.18],
+  [35, 26, 7, 0.82], [43, 34, 15, 1.08], [51, 29, 23, 0.78], [59, 38, 27, 1.22],
+  [67, 32, 19, 0.88], [75, 36, 25, 1.14], [84, 27, 12, 0.76], [93, 39, 29, 1.0]
 ];
 
 const demoPosts = [
@@ -172,6 +175,7 @@ const state = {
   inCall: false,
   liveRooms: [],
   liveRoomSearch: "",
+  liveRoomDraftName: "Nakaru Lounge",
   liveRoomSearchResults: [],
   activeLiveRoom: null,
   liveRoomInvites: [],
@@ -206,6 +210,8 @@ let musicFilterNode = null;
 let musicTimer = null;
 let musicStep = 0;
 let musicNextTime = 0;
+let notificationAudioContext = null;
+let lastDragonFrameTime = 0;
 
 function validHttpUrl(value) {
   try {
@@ -566,6 +572,7 @@ function addNotification(type, text, refId = "") {
     item,
     ...state.notifications
   ].slice(0, 20);
+  playNotificationSound(type);
   showDeviceNotification(item);
 }
 
@@ -621,6 +628,34 @@ function isUrgentNotification(type) {
   return ["call", "video-call", "audio-call", "live", "live-invite", "request"].includes(type);
 }
 
+function playNotificationSound(type = "message") {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  try {
+    if (!notificationAudioContext) notificationAudioContext = new AudioContextClass();
+    const context = notificationAudioContext;
+    if (context.state === "suspended") context.resume?.();
+    const now = context.currentTime;
+    const urgent = isUrgentNotification(type);
+    const notes = urgent ? [880, 1174.66, 1567.98] : [659.25, 987.77];
+    notes.forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = urgent ? "triangle" : "sine";
+      oscillator.frequency.setValueAtTime(frequency, now + index * 0.11);
+      gain.gain.setValueAtTime(0.0001, now + index * 0.11);
+      gain.gain.exponentialRampToValueAtTime(urgent ? 0.16 : 0.1, now + index * 0.11 + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.11 + 0.22);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(now + index * 0.11);
+      oscillator.stop(now + index * 0.11 + 0.24);
+    });
+  } catch (error) {
+    console.warn("Notification sound could not play", error);
+  }
+}
+
 async function showDeviceNotification(item) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
@@ -633,6 +668,8 @@ async function showDeviceNotification(item) {
       tag: `nakaru-${item.type}-${item.refId || item.id}`,
       renotify: urgent,
       requireInteraction: urgent,
+      silent: false,
+      vibrate: urgent ? [160, 80, 160, 80, 220] : [90, 50, 90],
       data: { page: notificationTarget(item.type), refId: item.refId || "" }
     };
     if (registration?.showNotification) {
@@ -943,7 +980,7 @@ function renderDragonBackground() {
 
 function resizeDragonCanvas(canvas) {
   if (!canvas) return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.45);
   const width = Math.max(window.innerWidth, 320);
   const height = Math.max(window.innerHeight, 320);
   const nextWidth = Math.floor(width * dpr);
@@ -989,6 +1026,11 @@ function dragonPoint(index, total, time, width, height) {
 }
 
 function drawDragonBackground(time = 0) {
+  if (!dragonReducedMotion && time - lastDragonFrameTime < 33) {
+    requestAnimationFrame(drawDragonBackground);
+    return;
+  }
+  lastDragonFrameTime = time;
   const canvas = document.getElementById("dragon-canvas");
   if (canvas && canvas !== dragonCanvas) {
     dragonCanvas = canvas;
@@ -1008,7 +1050,7 @@ function drawDragonBackground(time = 0) {
   const starPulse = dragonReducedMotion ? 0.5 : 0.5 + Math.sin(time * 0.0009) * 0.5;
   ctx.save();
   ctx.globalCompositeOperation = "screen";
-  const starCount = 48;
+  const starCount = 38;
   for (let index = 0; index < starCount; index += 1) {
     const x = (index * 173 + (dragonReducedMotion ? 0 : time * (0.006 + index * 0.00012))) % (width + 140) - 70;
     const y = (index * 97 + (dragonReducedMotion ? 0 : time * (0.003 + index * 0.00008))) % (height + 120) - 60;
@@ -1022,7 +1064,7 @@ function drawDragonBackground(time = 0) {
   }
   ctx.restore();
 
-  const total = 58;
+  const total = 50;
   const points = Array.from({ length: total }, (_, index) => dragonPoint(index, total, time, width, height));
   const bodyGradient = ctx.createLinearGradient(0, 0, width, height);
   bodyGradient.addColorStop(0, "rgba(4, 5, 10, 0.46)");
@@ -3085,7 +3127,8 @@ async function startFriendCall(friendId, type = "video") {
       .single();
     if (error) throw error;
     state.activeCallId = data.id;
-    state.callRoom = data.room_id;
+    state.activeLiveRoom = null;
+    setActiveMediaRoom(data.room_id);
     state.activeDmRecipient = friendId;
     state.page = "calls";
     void notifyPushUser(friendId, type === "audio" ? "audio-call" : "video-call", `${profileName({ id: state.user.id, ...state.profile })} is calling you.`, data.id);
@@ -3105,7 +3148,8 @@ async function acceptCall(callId) {
     const { error } = await supabaseClient.from("calls").update({ status: "accepted" }).eq("id", callId);
     if (error) throw error;
     state.activeCallId = call.id;
-    state.callRoom = call.room_id;
+    state.activeLiveRoom = null;
+    setActiveMediaRoom(call.room_id);
     state.activeDmRecipient = call.caller_id === state.user.id ? call.receiver_id : call.caller_id;
     state.page = "calls";
     void notifyPushUser(state.activeDmRecipient, "call", `${profileName({ id: state.user.id, ...state.profile })} accepted your call.`, call.id);
@@ -3138,6 +3182,7 @@ async function endActiveCall() {
     await supabaseClient.from("calls").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", state.activeCallId);
   }
   state.activeCallId = "";
+  if (!state.activeLiveRoom?.id) state.callRoom = "nakaru-lounge";
   state.callStatus = "Call ended.";
   await loadCalls();
   render();
@@ -3163,7 +3208,7 @@ async function createLiveRoom(event) {
     return;
   }
   const form = event ? new FormData(event.currentTarget) : null;
-  const roomName = String(form?.get("roomName") || state.callRoom || "Nakaru Live Room").trim();
+  const roomName = String(form?.get("roomName") || state.liveRoomDraftName || "Nakaru Live Room").trim();
   state.liveRoomCreating = true;
   state.liveRoomStatus = "Creating live room...";
   render();
@@ -3180,7 +3225,8 @@ async function createLiveRoom(event) {
       .single(), "Live room create", 8000);
     if (error) throw error;
     state.activeLiveRoom = data;
-    state.callRoom = data.id;
+    state.liveRoomDraftName = data.room_name || roomName;
+    setActiveMediaRoom(data.id);
     state.liveRoomSearch = "";
     state.liveRooms = [data, ...state.liveRooms.filter((room) => room.id !== data.id)];
     state.liveRoomSearchResults = state.liveRooms;
@@ -3217,7 +3263,7 @@ async function joinLiveRoom(roomId, mode = "video") {
     return;
   }
   state.activeLiveRoom = room;
-  state.callRoom = room.id;
+  setActiveMediaRoom(room.id);
   state.liveRoomJoining = room.id;
   state.liveRoomStatus = `Joining ${room.room_name || "live room"} over your internet connection...`;
   render();
@@ -3280,7 +3326,7 @@ async function acceptLiveInvite(inviteId) {
     if (error) throw error;
     await loadLiveRooms();
     state.activeLiveRoom = state.liveRooms.find((room) => room.id === invite.room_id) || state.activeLiveRoom;
-    state.callRoom = invite.room_id;
+    setActiveMediaRoom(invite.room_id);
     state.page = "live";
     state.liveRoomStatus = "Live invite accepted. Joining room...";
     void notifyPushUser(invite.sender_id, "live-invite", `${profileName({ id: state.user.id, ...state.profile })} accepted your live room invite.`, inviteId);
@@ -3309,6 +3355,16 @@ async function declineLiveInvite(inviteId) {
 
 function callRoomId() {
   return cleanUsername(state.callRoom || "nakaru-lounge", "nakaru_lounge");
+}
+
+function hasSelectedMediaRoom() {
+  const room = String(state.callRoom || "").trim();
+  return Boolean(room && room !== "nakaru-lounge");
+}
+
+function setActiveMediaRoom(roomId) {
+  const room = String(roomId || "").trim();
+  if (room) state.callRoom = room;
 }
 
 function currentCallProfile() {
@@ -3367,7 +3423,11 @@ function attachMediaStreams() {
 }
 
 function createPeerConnection(remoteUserId) {
-  const peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+  const peer = new RTCPeerConnection({
+    iceServers: [
+      { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun.cloudflare.com:3478"] }
+    ]
+  });
   peer.ontrack = (event) => {
     const stream = remoteStreams.get(remoteUserId) || new MediaStream();
     event.streams[0]?.getTracks().forEach((track) => {
@@ -3421,6 +3481,14 @@ async function sendCallSignal(payload, to = "all") {
 async function handleCallSignal(payload) {
   if (!payload || payload.from === state.user?.id || payload.room !== callRoomId()) return;
   if (payload.to && payload.to !== "all" && payload.to !== state.user?.id) return;
+  if (payload.type === "join-ready") {
+    await loadProfilesByIds([payload.from]);
+    await handleCallPresenceSync();
+    if (state.stream && String(state.user?.id || "") < String(payload.from || "")) {
+      window.setTimeout(() => createOfferFor(payload.from), 250);
+    }
+    return;
+  }
   const peer = await getPeerConnection(payload.from);
   if (!peer) return;
   try {
@@ -3520,6 +3588,11 @@ async function connectCall(mode = "video", isCaller = false) {
     render();
     return;
   }
+  if (!hasSelectedMediaRoom()) {
+    state.callStatus = "Create a live room, accept a call, or select a live room before starting video.";
+    render();
+    return;
+  }
   await stopCamera(false);
   state.callStarting = true;
   state.callMode = mode;
@@ -3539,8 +3612,19 @@ async function connectCall(mode = "video", isCaller = false) {
     });
     await state.callChannel.track(currentCallProfile());
     state.inCall = true;
-    state.callStatus = isCaller ? "Live room started. Waiting for others to join." : "Joined. Connecting to the room...";
+    const directCall = Boolean(state.activeCallId && String(state.callRoom || "").startsWith("call_"));
+    state.callStatus = isCaller
+      ? (directCall ? "Call started. Waiting for your friend to accept." : "Live room started. Waiting for others to join.")
+      : "Joined. Connecting to the room...";
+    await sendCallSignal({ type: "join-ready", mode }, "all");
     await handleCallPresenceSync();
+    [650, 1600, 3200].forEach((delay) => {
+      window.setTimeout(() => {
+        if (!state.inCall || !state.stream) return;
+        sendCallSignal({ type: "join-ready", mode: state.callMode }, "all");
+        handleCallPresenceSync();
+      }, delay);
+    });
   } catch (error) {
     console.error("Call setup failed", error);
     state.callStatus = "Call could not start. Check camera/microphone permission and try again.";
@@ -3557,10 +3641,21 @@ async function startCall(mode = "video") {
     await createLiveRoom();
     if (!state.activeLiveRoom) return;
   }
+  if (state.page === "live" && state.activeLiveRoom?.id) {
+    setActiveMediaRoom(state.activeLiveRoom.id);
+  }
   await connectCall(mode, true);
 }
 
 async function joinCall(mode = "video") {
+  if (state.page === "live") {
+    if (!state.activeLiveRoom?.id) {
+      state.callStatus = "Select an active live room or create one before joining video.";
+      render();
+      return;
+    }
+    setActiveMediaRoom(state.activeLiveRoom.id);
+  }
   await connectCall(mode, false);
 }
 
@@ -3974,13 +4069,14 @@ function renderPage() {
     const liveRooms = state.liveRoomSearch ? state.liveRoomSearchResults : state.liveRooms;
     const pendingInvites = state.liveRoomInvites.filter((invite) => invite.receiver_id === state.user?.id && invite.status === "pending");
     const ownedLiveRoom = state.activeLiveRoom?.host_id === state.user?.id ? state.activeLiveRoom : null;
-    const liveRoomNameValue = ownedLiveRoom?.room_name || (state.callRoom && !state.callRoom.startsWith("call_") && state.callRoom !== "nakaru-lounge" ? state.callRoom : "Nakaru Lounge");
+    const hasCurrentLiveRoom = Boolean(state.activeLiveRoom?.id);
+    const liveRoomNameValue = ownedLiveRoom?.room_name || state.liveRoomDraftName || "Nakaru Lounge";
     return `
       <main class="content-layout">
         <section class="panel live-panel">
           <div class="panel-title"><span class="eyebrow">GoLive</span><h2>Searchable live rooms</h2></div>
           <form class="form-grid compact-form" onsubmit="createLiveRoom(event)">
-            <label>Live room name<input name="roomName" value="${escapeHtml(liveRoomNameValue)}" oninput="state.callRoom=this.value" placeholder="Nakaru Lounge" /></label>
+            <label>Live room name<input name="roomName" value="${escapeHtml(liveRoomNameValue)}" oninput="state.liveRoomDraftName=this.value" placeholder="Nakaru Lounge" /></label>
             <button class="primary-action" ${state.liveRoomCreating ? "disabled" : ""} type="submit">${state.liveRoomCreating ? "Creating..." : "Create Searchable Live Room"}</button>
           </form>
           <form class="form-grid compact-form" onsubmit="searchLiveRooms(event)">
@@ -3991,8 +4087,8 @@ function renderPage() {
           <div class="hero-actions">
             <button class="primary-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('video')" type="button">Go Live Video</button>
             <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="startCall('audio')" type="button">Go Live Audio</button>
-            <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('video')" type="button">Join Current Video</button>
-            <button class="ghost-action" ${state.callStarting ? "disabled" : ""} onclick="joinCall('audio')" type="button">Join Current Audio</button>
+            <button class="ghost-action" ${state.callStarting || !hasCurrentLiveRoom ? "disabled" : ""} onclick="joinCall('video')" type="button">Join Selected Video</button>
+            <button class="ghost-action" ${state.callStarting || !hasCurrentLiveRoom ? "disabled" : ""} onclick="joinCall('audio')" type="button">Join Selected Audio</button>
             <button class="ghost-action" onclick="endLiveRoom()" type="button">End Live</button>
           </div>
           ${state.callStatus ? `<p class="status-text">${escapeHtml(state.callStatus)}</p>` : ""}

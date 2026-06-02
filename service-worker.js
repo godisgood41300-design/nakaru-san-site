@@ -1,4 +1,4 @@
-const CACHE_NAME = "nakaru-san-pwa-20260601-closed-push-qr-dragon";
+const CACHE_NAME = "nakaru-san-pwa-20260601-live-call-performance-fix";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -83,6 +83,8 @@ self.addEventListener("push", (event) => {
     badge: payload.badge || "./icons/maskable-192.png",
     tag: payload.tag || "nakaru-notification",
     renotify: true,
+    silent: false,
+    vibrate: ["video-call", "audio-call", "call", "live-invite", "live"].includes(payload.type) ? [160, 80, 160, 80, 220] : [90, 50, 90],
     requireInteraction: ["video-call", "audio-call", "call", "live-invite", "live"].includes(payload.type),
     data: payload.data || { page: payload.page || "messages" }
   };

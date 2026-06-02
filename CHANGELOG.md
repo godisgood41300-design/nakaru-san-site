@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-01 - Live room and call reliability pass
+
+- Fixed a shared-room bug where the live room name input could overwrite the WebRTC room id and send users into the wrong/default room.
+- Prevented Join Current buttons from using the old default room; users now need a selected/created live room before joining.
+- Added a join-ready WebRTC handshake and retry pass so remote cameras negotiate more reliably when another user joins a call/live room.
+- Added more STUN servers to improve peer connection success on different Wi-Fi and mobile-data networks.
+- Added in-app notification chimes plus browser notification vibration/default sound hints for messages, requests, calls, and live invites.
+- Added more pink cherry blossoms while throttling the dragon canvas to reduce phone/browser slowdown.
+- Updated cache-busting to `20260601-live-call-performance-fix`.
+
 ## 2026-06-01 - Closed push, QR download, louder music, and dragon upgrade
 
 - Added a Render Web Service `/api/push-notification` route for closed-app Web Push notifications using VAPID keys and Supabase push subscriptions.
